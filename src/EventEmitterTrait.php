@@ -39,7 +39,7 @@ trait EventEmitterTrait
     {
         $wrapper = null;
         $wrapper = function (...$args) use ($event, $callback, &$wrapper) {
-            $this->off($event, $wrapper);
+            $this->removeListener($event, $wrapper);
             $callback(...$args);
         };
 
@@ -55,7 +55,7 @@ trait EventEmitterTrait
      * @param callable $callback The specific listener to remove.
      * @return static
      */
-    public function off(string $event, callable $callback): self
+    public function removeListener(string $event, callable $callback): self
     {
         if (! isset($this->listeners[$event])) {
             return $this;

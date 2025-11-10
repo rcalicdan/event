@@ -151,7 +151,7 @@ describe('once() method', function () {
     });
 });
 
-describe('off() method', function () {
+describe('removeListener() method', function () {
     it('removes a specific listener', function () {
         $emitter = new TestEmitter();
         $called = false;
@@ -161,7 +161,7 @@ describe('off() method', function () {
         };
         
         $emitter->on('test', $callback);
-        $emitter->off('test', $callback);
+        $emitter->removeListener('test', $callback);
         $emitter->triggerEvent('test');
         
         expect($called)->toBeFalse();
@@ -181,7 +181,7 @@ describe('off() method', function () {
         
         $emitter->on('test', $callback1);
         $emitter->on('test', $callback2);
-        $emitter->off('test', $callback1);
+        $emitter->removeListener('test', $callback1);
         $emitter->triggerEvent('test');
         
         expect($counter)->toBe(1);
@@ -191,7 +191,7 @@ describe('off() method', function () {
         $emitter = new TestEmitter();
         $callback = function () {};
         
-        expect(fn() => $emitter->off('nonexistent', $callback))
+        expect(fn() => $emitter->removeListener('nonexistent', $callback))
             ->not->toThrow(Exception::class);
     });
 
@@ -202,7 +202,7 @@ describe('off() method', function () {
         
         $emitter->on('test', $callback1);
         
-        expect(fn() => $emitter->off('test', $callback2))
+        expect(fn() => $emitter->removeListener('test', $callback2))
             ->not->toThrow(Exception::class);
     });
 
@@ -211,14 +211,14 @@ describe('off() method', function () {
         $callback = function () {};
         
         $emitter->on('test', $callback);
-        $emitter->off('test', $callback);
+        $emitter->removeListener('test', $callback);
         
         expect($emitter->checkHasListeners('test'))->toBeFalse();
     });
 
     it('returns self for method chaining', function () {
         $emitter = new TestEmitter();
-        $result = $emitter->off('test', function () {});
+        $result = $emitter->removeListener('test', function () {});
         
         expect($result)->toBe($emitter);
     });
@@ -235,7 +235,7 @@ describe('off() method', function () {
         $emitter->on('test', $callback);
         $emitter->on('test', $callback);
         
-        $emitter->off('test', $callback);
+        $emitter->removeListener('test', $callback);
         $emitter->triggerEvent('test');
         
         expect($counter)->toBe(0);
@@ -346,7 +346,7 @@ describe('hasListeners() method', function () {
         $callback = function () {};
         
         $emitter->on('test', $callback);
-        $emitter->off('test', $callback);
+        $emitter->removeListener('test', $callback);
         
         expect($emitter->checkHasListeners('test'))->toBeFalse();
     });
@@ -429,7 +429,7 @@ describe('method chaining', function () {
         expect($counter)->toBe(2);
     });
 
-    it('chains on, once, and off methods', function () {
+    it('chains on, once, and removeListener methods', function () {
         $emitter = new TestEmitter();
         $counter = 0;
         
@@ -438,7 +438,7 @@ describe('method chaining', function () {
         $result = $emitter
             ->on('test', $callback)
             ->on('test', function () use (&$counter) { $counter++; })
-            ->off('test', $callback);
+            ->removeListener('test', $callback);
         
         $emitter->triggerEvent('test');
         
@@ -531,7 +531,7 @@ describe('edge cases', function () {
         
         $callback1 = function () use (&$results, $emitter, &$callback2) {
             $results[] = 'first';
-            $emitter->off('test', $callback2);
+            $emitter->removeListener('test', $callback2);
         };
         
         $callback2 = function () use (&$results) {
