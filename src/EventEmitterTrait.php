@@ -15,14 +15,15 @@ trait EventEmitterTrait
     /**
      * Attaches a callback to an event, enabling code to react to the event state changes.
      *
-     * @param string $event The name of the event to listen for.
+     * @param string|EventEnum $event The name of the event to listen for.
      * @param callable $callback The function to execute when the event occurs.
      * @return static
      */
-    public function on(string $event, callable $callback): self
+    public function on(string|EventEnum $event, callable $callback): self
     {
-        $this->listeners[$event] ??= [];
-        $this->listeners[$event][$this->listenerIdCounter++] = $callback;
+        $eventName = $this->normalizeEvent($event);
+        $this->listeners[$eventName] ??= [];
+        $this->listeners[$eventName][$this->listenerIdCounter++] = $callback;
 
         return $this;
     }
@@ -31,11 +32,11 @@ trait EventEmitterTrait
      * Attaches a callback that is automatically removed after its first execution.
      * Useful for one-time setup or teardown logic without manual cleanup.
      *
-     * @param string $event The name of the event to listen for.
+     * @param string|EventEnum $event The name of the event to listen for.
      * @param callable $callback The function to execute once.
      * @return static
      */
-    public function once(string $event, callable $callback): self
+    public function once(string|EventEnum $event, callable $callback): self
     {
         $wrapper = null;
         $wrapper = function (...$args) use ($event, $callback, &$wrapper) {
@@ -51,24 +52,26 @@ trait EventEmitterTrait
     /**
      * Detaches a specific callback from an event to prevent memory leaks and manage resources.
      *
-     * @param string $event The name of the event.
+     * @param string|EventEnum $event The name of the event.
      * @param callable $callback The specific listener to remove.
      * @return static
      */
-    public function removeListener(string $event, callable $callback): self
+    public function removeListener(string|EventEnum $event, callable $callback): self
     {
-        if (! isset($this->listeners[$event])) {
+        $eventName = $this->normalizeEvent($event);
+
+        if (! isset($this->listeners[$eventName])) {
             return $this;
         }
 
-        foreach ($this->listeners[$event] as $id => $listener) {
+        foreach ($this->listeners[$eventName] as $id => $listener) {
             if ($listener === $callback) {
-                unset($this->listeners[$event][$id]);
+                unset($this->listeners[$eventName][$id]);
             }
         }
 
-        if ($this->listeners[$event] === []) {
-            unset($this->listeners[$event]);
+        if ($this->listeners[$eventName] === []) {
+            unset($this->listeners[$eventName]);
         }
 
         return $this;
@@ -77,20 +80,22 @@ trait EventEmitterTrait
     /**
      * Broadcasts an event to all registered listeners, announcing that something meaningful has occurred.
      *
-     * @param string $event The name of the event to broadcast.
+     * @param string|EventEnum $event The name of the event to broadcast.
      * @param mixed ...$args The data to pass to each listener.
      */
-    public function emit(string $event, mixed ...$args): void
+    public function emit(string|EventEnum $event, mixed ...$args): void
     {
-        if (! isset($this->listeners[$event])) {
+        $eventName = $this->normalizeEvent($event);
+
+        if (! isset($this->listeners[$eventName])) {
             return;
         }
 
-        foreach ($this->listeners[$event] as $listener) {
+        foreach ($this->listeners[$eventName] as $listener) {
             try {
                 $listener(...$args);
             } catch (\Throwable $e) {
-                if ($event !== 'error') {
+                if ($eventName !== 'error') {
                     $this->emit('error', $e);
                 } else {
                     // Avoid an infinite loop if the error handler itself throws.
@@ -103,24 +108,34 @@ trait EventEmitterTrait
     /**
      * Checks if any listeners are registered, which can be used to avoid expensive work if no one is listening.
      *
-     * @param string $event The name of the event to check.
+     * @param string|EventEnum $event The name of the event to check.
      */
-    public function hasListeners(string $event): bool
+    public function hasListeners(string|EventEnum $event): bool
     {
-        return isset($this->listeners[$event]) && $this->listeners[$event] !== [];
+        $eventName = $this->normalizeEvent($event);
+        return isset($this->listeners[$eventName]) && $this->listeners[$eventName] !== [];
     }
 
     /**
      * Detaches all listeners, a crucial cleanup step to prevent memory leaks when a stream is closed.
      *
-     * @param string|null $event The event to clear, or null to clear all events.
+     * @param string|EventEnum|null $event The event to clear, or null to clear all events.
      */
-    public function removeAllListeners(?string $event = null): void
+    public function removeAllListeners(string|EventEnum|null $event = null): void
     {
         if ($event === null) {
             $this->listeners = [];
         } else {
-            unset($this->listeners[$event]);
+            $eventName = $this->normalizeEvent($event);
+            unset($this->listeners[$eventName]);
         }
+    }
+
+    /**
+     * Normalize event to string
+     */
+    private function normalizeEvent(string|EventEnum $event): string
+    {
+        return $event instanceof EventEnum ? $event->getName() : $event;
     }
 }

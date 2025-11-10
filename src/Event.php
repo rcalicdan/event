@@ -47,7 +47,7 @@ class Event
     /**
      * Attaches a callback to an event.
      */
-    public static function on(string $event, callable $callback): EventEmitterInterface
+    public static function on(string|EventEnum $event, callable $callback): EventEmitterInterface
     {
         return self::getInstance()->on($event, $callback);
     }
@@ -55,7 +55,7 @@ class Event
     /**
      * Attaches a one-time callback to an event.
      */
-    public static function once(string $event, callable $callback): EventEmitterInterface
+    public static function once(string|EventEnum $event, callable $callback): EventEmitterInterface
     {
         return self::getInstance()->once($event, $callback);
     }
@@ -63,7 +63,7 @@ class Event
     /**
      * Removes a specific listener from an event.
      */
-    public static function removeListener(string $event, callable $callback): EventEmitterInterface
+    public static function removeListener(string|EventEnum $event, callable $callback): EventEmitterInterface
     {
         return self::getInstance()->removeListener($event, $callback);
     }
@@ -71,7 +71,7 @@ class Event
     /**
      * Emits an event to all registered listeners.
      */
-    public static function emit(string $event, mixed ...$args): void
+    public static function emit(string|EventEnum $event, mixed ...$args): void
     {
         self::getInstance()->emit($event, ...$args);
     }
@@ -79,7 +79,7 @@ class Event
     /**
      * Checks if an event has any listeners.
      */
-    public static function hasListeners(string $event): bool
+    public static function hasListeners(string|EventEnum $event): bool
     {
         return self::getInstance()->hasListeners($event);
     }
@@ -87,7 +87,7 @@ class Event
     /**
      * Removes all listeners for a specific event or all events.
      */
-    public static function removeAllListeners(?string $event = null): void
+    public static function removeAllListeners(string|EventEnum|null $event = null): void
     {
         self::getInstance()->removeAllListeners($event);
     }
