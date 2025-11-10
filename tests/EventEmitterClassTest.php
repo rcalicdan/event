@@ -166,3 +166,4 @@ describe('EventEmitter type safety', function () {
         expect($result3)->toBe($emitter);
     });
 });
+
