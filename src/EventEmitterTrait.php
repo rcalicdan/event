@@ -80,7 +80,7 @@ trait EventEmitterTrait
      * @param string $event The name of the event to broadcast.
      * @param mixed ...$args The data to pass to each listener.
      */
-    protected function emit(string $event, mixed ...$args): void
+    public function emit(string $event, mixed ...$args): void
     {
         if (! isset($this->listeners[$event])) {
             return;
@@ -105,7 +105,7 @@ trait EventEmitterTrait
      *
      * @param string $event The name of the event to check.
      */
-    protected function hasListeners(string $event): bool
+    public function hasListeners(string $event): bool
     {
         return isset($this->listeners[$event]) && $this->listeners[$event] !== [];
     }
@@ -115,7 +115,7 @@ trait EventEmitterTrait
      *
      * @param string|null $event The event to clear, or null to clear all events.
      */
-    protected function removeAllListeners(?string $event = null): void
+    public function removeAllListeners(?string $event = null): void
     {
         if ($event === null) {
             $this->listeners = [];
