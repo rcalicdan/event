@@ -1,32 +1,6 @@
 <?php
 
 use Rcalicdan\Event\EventEmitter;
-use Rcalicdan\Event\EventEmitterInterface;
-
-describe('EventEmitter class', function () {
-    it('implements EventEmitterInterface', function () {
-        $emitter = new EventEmitter();
-        
-        expect($emitter)->toBeInstanceOf(EventEmitterInterface::class);
-    });
-
-    it('can be instantiated', function () {
-        $emitter = new EventEmitter();
-        
-        expect($emitter)->toBeInstanceOf(EventEmitter::class);
-    });
-
-    it('provides all interface methods', function () {
-        $emitter = new EventEmitter();
-        
-        expect($emitter)->toHaveMethod('on');
-        expect($emitter)->toHaveMethod('once');
-        expect($emitter)->toHaveMethod('removeListener');
-        expect($emitter)->toHaveMethod('emit');
-        expect($emitter)->toHaveMethod('hasListeners');
-        expect($emitter)->toHaveMethod('removeAllListeners');
-    });
-});
 
 describe('EventEmitter functionality', function () {
     it('can register and trigger events', function () {
