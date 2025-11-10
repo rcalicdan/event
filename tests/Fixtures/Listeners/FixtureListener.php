@@ -11,6 +11,6 @@ class FixtureListener
 {
     public function handle(): void
     {
-        echo "fixture listener called";
+        echo 'fixture listener called';
     }
 }

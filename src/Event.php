@@ -11,7 +11,9 @@ class Event
     /**
      * Private constructor to prevent direct instantiation.
      */
-    private function __construct() {}
+    private function __construct()
+    {
+    }
 
     /**
      * Get the shared event emitter instance.

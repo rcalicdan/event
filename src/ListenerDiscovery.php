@@ -26,18 +26,32 @@ class ListenerDiscovery
             throw new \InvalidArgumentException("Directory not found: {$directory}");
         }
 
+        $realDirectory = realpath($directory);
+        if ($realDirectory === false) {
+            throw new \InvalidArgumentException("Cannot resolve real path for directory: {$directory}");
+        }
+
         $files = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($directory)
+            new RecursiveDirectoryIterator($realDirectory, RecursiveDirectoryIterator::SKIP_DOTS)
         );
 
         foreach ($files as $file) {
-            if ($file->isFile() && $file->getExtension() === 'php') {
-                $relativePath = str_replace($directory, '', $file->getPathname());
-                $relativePath = str_replace(['/', '\\'], '\\', $relativePath);
-                $relativePath = ltrim($relativePath, '\\');
-                $className = $namespace . '\\' . str_replace('.php', '', $relativePath);
+            if (!$file instanceof \SplFileInfo) {
+                continue;
+            }
 
-                if (class_exists($className)) {
+            if ($file->isFile() && $file->getExtension() === 'php') {
+                $filePath = $file->getRealPath();
+                if ($filePath === false) {
+                    continue;
+                }
+
+                $relativePath = str_replace($realDirectory, '', $filePath);
+                $relativePath = ltrim($relativePath, DIRECTORY_SEPARATOR);
+                $classPath = str_replace([DIRECTORY_SEPARATOR, '.php'], ['\\', ''], $relativePath);
+                $className = rtrim($namespace, '\\') . '\\' . $classPath;
+
+                if (class_exists($className, true)) {
                     self::registerClass($className);
                 }
             }
@@ -47,7 +61,7 @@ class ListenerDiscovery
     }
 
     /**
-     * Register a specific class if it has Listener attributes
+     * @param class-string $className
      */
     private static function registerClass(string $className): void
     {
@@ -55,7 +69,7 @@ class ListenerDiscovery
             $reflection = new ReflectionClass($className);
             $attributes = $reflection->getAttributes(Listener::class);
 
-            if (empty($attributes)) {
+            if ($attributes === []) {
                 return;
             }
 
@@ -64,16 +78,20 @@ class ListenerDiscovery
             foreach ($attributes as $attribute) {
                 /** @var Listener $listener */
                 $listener = $attribute->newInstance();
-                
+
                 $method = $listener->method;
-                
+
                 if (!method_exists($instance, $method)) {
                     throw new \RuntimeException(
                         "Method {$method} does not exist on {$className}"
                     );
                 }
 
-                Event::on($listener->event, [$instance, $method]);
+                $callable = [$instance, $method];
+                
+                if (is_callable($callable)) {
+                    Event::on($listener->event, $callable);
+                }
             }
         } catch (\ReflectionException $e) {
             // Skip classes that can't be reflected
