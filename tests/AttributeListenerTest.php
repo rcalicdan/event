@@ -10,21 +10,21 @@ beforeEach(function () {
 
 test('attribute listener is auto-registered', function () {
     ListenerDiscovery::discover(
-        directory: __DIR__ . '/../../src/Listeners',
-        namespace: 'Rcalicdan\\Event\\Listeners'
+        directory: __DIR__ . '/Fixtures/Listeners',
+        namespace: 'Tests\\Fixtures\\Listeners'
     );
     
     ob_start();
-    Event::emit('test');
+    Event::emit('fixture.test');
     $output = ob_get_clean();
     
-    expect($output)->toContain('test event fired!');
+    expect($output)->toContain('fixture listener called');
 });
 
 test('multiple event attributes on same class work', function () {
     ListenerDiscovery::discover(
-        directory: __DIR__ . '/../../src/Listeners',
-        namespace: 'Rcalicdan\\Event\\Listeners'
+        directory: __DIR__ . '/Fixtures/Listeners',
+        namespace: 'Tests\\Fixtures\\Listeners'
     );
     
     ob_start();
