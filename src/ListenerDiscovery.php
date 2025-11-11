@@ -55,22 +55,13 @@ class ListenerDiscovery
                 $classPath = str_replace([DIRECTORY_SEPARATOR, '.php'], ['\\', ''], $relativePath);
                 $className = rtrim($namespace, '\\') . '\\' . $classPath;
   
-                $functionsBefore = get_defined_functions()['user'];
-
-           
                 if (self::fileContainsClass($filePath, $className)) {
                     if (class_exists($className, true)) {
                         self::registerClass($className);
                     }
                 } else {
-                    self::loadFunctionFile($filePath);
-                }
-
-                $functionsAfter = get_defined_functions()['user'];
-                $newFunctions = array_diff($functionsAfter, $functionsBefore);
-                
-                foreach ($newFunctions as $functionName) {
-                    self::registerFunction($functionName);
+                    // This is a function file - load it and scan for functions
+                    self::loadAndRegisterFunctions($filePath, $namespace);
                 }
             }
         }
@@ -89,20 +80,55 @@ class ListenerDiscovery
         }
 
         $shortClassName = substr($expectedClassName, strrpos($expectedClassName, '\\') + 1);
-        return preg_match('/^(abstract\s+|final\s+)?class\s+' . preg_quote($shortClassName, '/') . '\s/m', $content) === 1;
+        $hasClass = preg_match('/^(abstract\s+|final\s+)?class\s+' . preg_quote($shortClassName, '/') . '\s/m', $content) === 1;
+        
+        return $hasClass;
     }
 
     /**
-     * Load a file containing functions
+     * Load a function file and register all functions with Listener attributes
      */
-    private static function loadFunctionFile(string $filePath): void
+    private static function loadAndRegisterFunctions(string $filePath, string $namespace): void
     {
-        if (in_array($filePath, self::$loadedFiles, true)) {
-            return;
+        $isAlreadyLoaded = in_array($filePath, self::$loadedFiles, true);
+        
+        $functionsBefore = get_defined_functions()['user'];
+        
+        if (!$isAlreadyLoaded) {
+            require_once $filePath;
+            self::$loadedFiles[] = $filePath;
         }
+    
+        $functionsAfter = get_defined_functions()['user'];
+        
+        $newFunctions = array_diff($functionsAfter, $functionsBefore);
+        
+        if ($isAlreadyLoaded && count($newFunctions) === 0) {
+            $newFunctions = self::findFunctionsInNamespace($namespace);
+        }
+        
+        foreach ($newFunctions as $functionName) {
+            self::registerFunction($functionName);
+        }
+    }
 
-        require_once $filePath;
-        self::$loadedFiles[] = $filePath;
+    /**
+     * Find all functions in a specific namespace
+     */
+    private static function findFunctionsInNamespace(string $namespace): array
+    {
+        $allFunctions = get_defined_functions()['user'];
+        $namespace = strtolower(rtrim($namespace, '\\') . '\\');
+        
+        $matchingFunctions = [];
+        foreach ($allFunctions as $functionName) {
+            $lowerFunctionName = strtolower($functionName);
+            if (str_starts_with($lowerFunctionName, $namespace)) {
+                $matchingFunctions[] = $functionName;
+            }
+        }
+        
+        return $matchingFunctions;
     }
 
     /**
@@ -126,13 +152,17 @@ class ListenerDiscovery
                 /** @var Listener $listener */
                 $listener = $attribute->newInstance();
 
-                if (is_callable($functionName)) {
-                    Event::on($listener->event, $functionName);
+                $callable = function_exists($functionName) ? $functionName : null;
+                
+                if ($callable !== null) {
+                    Event::on($listener->event, $callable);
                     self::$registeredFunctions[] = $functionName;
                 }
             }
         } catch (\ReflectionException $e) {
-            // Skip functions that can't be reflected
+            // Handle reflection exception silently
+        } catch (\Throwable $e) {
+            // Handle other exceptions silently
         }
     }
 
@@ -148,7 +178,7 @@ class ListenerDiscovery
             self::registerMethodListeners($reflection);
             
         } catch (\ReflectionException $e) {
-            // Skip classes that can't be reflected
+            // Handle reflection exception silently
         }
     }
 
@@ -223,6 +253,5 @@ class ListenerDiscovery
     {
         self::$discovered = false;
         self::$registeredFunctions = [];
-        self::$loadedFiles = [];
     }
 }

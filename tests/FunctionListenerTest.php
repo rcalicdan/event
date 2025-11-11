@@ -6,16 +6,16 @@ use Rcalicdan\Event\Event;
 use Rcalicdan\Event\ListenerDiscovery;
 use Tests\Fixtures\Events\PaymentEvents;
 
+
 beforeEach(function () {
     Event::reset();
     ListenerDiscovery::reset();
     
     ListenerDiscovery::discover(
-        __DIR__ . '/Fixtures/Listeners',
-        'Tests\\Fixtures\\Listeners'
+        __DIR__ . '/Fixtures/FunctionListeners',
+        'Tests\\Fixtures\\FunctionListeners'
     );
 });
-
 afterEach(function () {
     Event::reset();
     ListenerDiscovery::reset();
@@ -72,6 +72,16 @@ test('function listener has listeners check works', function () {
 });
 
 test('mixed class and function listeners work together', function () {
+    ListenerDiscovery::reset();
+    ListenerDiscovery::discover(
+        __DIR__ . '/Fixtures/Listeners',
+        'Tests\\Fixtures\\Listeners'
+    );
+    ListenerDiscovery::discover(
+        __DIR__ . '/Fixtures/FunctionListeners',
+        'Tests\\Fixtures\\FunctionListeners'
+    );
+    
     ob_start();
     Event::emit('fixture.test');
     Event::emit('function.simple');
@@ -105,8 +115,8 @@ test('function is not registered twice on reset and rediscover', function () {
     ListenerDiscovery::reset();
 
     ListenerDiscovery::discover(
-        __DIR__ . '/Fixtures/Listeners',
-        'Tests\\Fixtures\\Listeners'
+        __DIR__ . '/Fixtures/FunctionListeners',
+        'Tests\\Fixtures\\FunctionListeners'
     );
 
     ob_start();
@@ -182,7 +192,6 @@ test('function listener with no parameters works', function () {
 });
 
 test('multiple function listeners on same event', function () {
-    // Add another listener to the same event
     Event::on('function.simple', function (): void {
         echo ' and another listener';
     });

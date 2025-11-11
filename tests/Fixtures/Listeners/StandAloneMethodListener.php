@@ -6,7 +6,7 @@ namespace Tests\Fixtures\Listeners;
 
 use Rcalicdan\Event\Attributes\Listener;
 
-class StandaloneMethodListener
+class StandAloneMethodListener
 {
     #[Listener(event: 'standalone.method')]
     public function handleStandalone(): void
