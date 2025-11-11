@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Rcalicdan\Event;
 
+use Rcalicdan\ConfigLoader\Exceptions\EnvFileNotFoundException;
+
+use function Rcalicdan\ConfigLoader\env;
+
 trait EventEmitterTrait
 {
     /** @var array<string, array<int, callable>> */
@@ -11,6 +15,35 @@ trait EventEmitterTrait
 
     /** @var int */
     private int $listenerIdCounter = 0;
+
+    /** @var bool|null */
+    private ?bool $throwOnListenerError = null;
+
+    /**
+     * Configure whether to throw exceptions from listeners or emit them as 'error' events
+     */
+    public function setThrowOnListenerError(bool $throw): self
+    {
+        $this->throwOnListenerError = $throw;
+        return $this;
+    }
+
+    /**
+     * Get the throw on listener error setting, checking env if not explicitly set
+     */
+    private function shouldThrowOnListenerError(): bool
+    {
+        try {
+            if ($this->throwOnListenerError !== null) {
+                return $this->throwOnListenerError;
+            }
+
+            return env('EVENT_THROW_ON_ERROR', false);
+        } catch (EnvFileNotFoundException) {
+            // If env file is not found, default to false
+            return false;
+        }
+    }
 
     /**
      * Attaches a callback to an event, enabling code to react to the event state changes.
@@ -95,11 +128,21 @@ trait EventEmitterTrait
             try {
                 $listener(...$args);
             } catch (\Throwable $e) {
+                if ($this->shouldThrowOnListenerError()) {
+                    throw $e;
+                }
+
                 if ($eventName !== 'error') {
                     $this->emit('error', $e);
                 } else {
                     // Avoid an infinite loop if the error handler itself throws.
-                    fwrite(STDERR, "Unhandled error in stream error handler: {$e->getMessage()}\n");
+                    fwrite(STDERR, sprintf(
+                        "Unhandled Event Error: %s\nFile: %s:%d\nStack trace:\n%s\n",
+                        $e->getMessage(),
+                        $e->getFile(),
+                        $e->getLine(),
+                        $e->getTraceAsString()
+                    ));
                 }
             }
         }

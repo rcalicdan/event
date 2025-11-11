@@ -56,4 +56,12 @@ interface EventEmitterInterface
      * @param string|EventEnum|null $event The event to clear, or null to clear all events.
      */
     public function removeAllListeners(string|EventEnum|null $event = null): void;
+
+    /**
+     * Configure whether to throw exceptions from listeners or emit them as 'error' events
+     *
+     * @param bool $throw If true, exceptions will be thrown. If false, they'll be emitted as 'error' events.
+     * @return static
+     */
+    public function setThrowOnListenerError(bool $throw): self;
 }

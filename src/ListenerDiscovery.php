@@ -19,11 +19,19 @@ class ListenerDiscovery
 
     /**
      * Discover and register all listeners in a directory
+     * 
+     * @param string $directory The directory to scan for listeners
+     * @param string $namespace The namespace of the listeners
+     * @param bool|null $failFast If true, exceptions will be thrown. If false, resilient mode. If null, uses env config.
      */
-    public static function discover(string $directory, string $namespace): void
+    public static function discover(string $directory, string $namespace, ?bool $failFast = null): void
     {
         if (self::$discovered) {
             return;
+        }
+
+        if ($failFast !== null) {
+            Event::setThrowOnListenerError($failFast);
         }
 
         if (!is_dir($directory)) {

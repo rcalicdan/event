@@ -45,6 +45,32 @@ class Event
     }
 
     /**
+     * Configure whether to throw exceptions from listeners or emit them as 'error' events.
+     */
+    public static function setThrowOnListenerError(bool $throw): void
+    {
+        self::getInstance()->setThrowOnListenerError($throw);
+    }
+
+    /**
+     * Enable fail-fast mode (useful for development).
+     * Exceptions thrown by listeners will propagate immediately.
+     */
+    public static function failFast(): void
+    {
+        self::setThrowOnListenerError(true);
+    }
+
+    /**
+     * Enable resilient mode (useful for production).
+     * Exceptions thrown by listeners will be caught and emitted as 'error' events.
+     */
+    public static function resilient(): void
+    {
+        self::setThrowOnListenerError(false);
+    }
+
+    /**
      * Attaches a callback to an event.
      */
     public static function on(string|EventEnum $event, callable $callback): EventEmitterInterface
