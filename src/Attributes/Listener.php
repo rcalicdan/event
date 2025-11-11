@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Rcalicdan\Event\Attributes;
 
-use Rcalicdan\Event\EventEnum;
-
 #[\Attribute(
     \Attribute::TARGET_CLASS | 
     \Attribute::TARGET_METHOD |
@@ -14,13 +12,13 @@ use Rcalicdan\Event\EventEnum;
 )]
 class Listener
 {
-    public readonly string $event;
+    public readonly string|\BackedEnum $event;
 
     public function __construct(
-        string|EventEnum $event,
+        string|\BackedEnum $event,
         public string $method = 'handle',
         public int $priority = 0  
     ) {
-        $this->event = $event instanceof EventEnum ? $event->getName() : $event;
+        $this->event = $event;
     }
 }

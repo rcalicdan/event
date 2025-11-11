@@ -14,7 +14,11 @@ use ReflectionFunction;
 class ListenerDiscovery
 {
     private static bool $discovered = false;
+    
+    /** @var array<int, string> */
     private static array $registeredFunctions = [];
+    
+    /** @var array<int, string> */
     private static array $loadedFiles = [];
 
     /**
@@ -87,7 +91,10 @@ class ListenerDiscovery
             return false;
         }
 
-        $shortClassName = substr($expectedClassName, strrpos($expectedClassName, '\\') + 1);
+        $lastBackslashPos = strrpos($expectedClassName, '\\');
+        $shortClassName = $lastBackslashPos !== false 
+            ? substr($expectedClassName, $lastBackslashPos + 1) 
+            : $expectedClassName;
         $hasClass = preg_match('/^(abstract\s+|final\s+)?class\s+' . preg_quote($shortClassName, '/') . '\s/m', $content) === 1;
         
         return $hasClass;
@@ -116,12 +123,16 @@ class ListenerDiscovery
         }
         
         foreach ($newFunctions as $functionName) {
-            self::registerFunction($functionName);
+            if (is_string($functionName)) {
+                self::registerFunction($functionName);
+            }
         }
     }
 
     /**
      * Find all functions in a specific namespace
+     * 
+     * @return array<int, string>
      */
     private static function findFunctionsInNamespace(string $namespace): array
     {
@@ -192,6 +203,8 @@ class ListenerDiscovery
 
     /**
      * Register class-level listener attributes
+     * 
+     * @param ReflectionClass<object> $reflection
      */
     private static function registerClassListeners(ReflectionClass $reflection): void
     {
@@ -225,6 +238,8 @@ class ListenerDiscovery
 
     /**
      * Register method-level listener attributes
+     * 
+     * @param ReflectionClass<object> $reflection
      */
     private static function registerMethodListeners(ReflectionClass $reflection): void
     {

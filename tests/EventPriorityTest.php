@@ -3,7 +3,7 @@
 use Rcalicdan\Event\EventEmitter;
 
 describe('EventEmitter Priority Support', function () {
-    
+
     it('executes listeners in priority order (highest first)', function () {
         $emitter = new EventEmitter();
         $executionOrder = [];
@@ -289,26 +289,24 @@ describe('EventEmitter Priority Support', function () {
         expect($executionOrder)->toBe(['high', 'low']);
     });
 
-    it('handles priority with EventEnum', function () {
+    it('handles priority with BackedEnum', function () {
+        enum TestEvent: string
+        {
+            case PRIORITY_TEST = 'test.event';
+        }
+
         $emitter = new EventEmitter();
         $executionOrder = [];
 
-        $enum = new class('test.event') implements \Rcalicdan\Event\EventEnum {
-            public function __construct(private string $value) {}
-            public function getName(): string {
-                return $this->value;
-            }
-        };
-
-        $emitter->on($enum, function () use (&$executionOrder) {
+        $emitter->on(TestEvent::PRIORITY_TEST, function () use (&$executionOrder) {
             $executionOrder[] = 'low';
         }, 10);
 
-        $emitter->on($enum, function () use (&$executionOrder) {
+        $emitter->on(TestEvent::PRIORITY_TEST, function () use (&$executionOrder) {
             $executionOrder[] = 'high';
         }, 100);
 
-        $emitter->emit($enum);
+        $emitter->emit(TestEvent::PRIORITY_TEST);
         expect($executionOrder)->toBe(['high', 'low']);
     });
 
@@ -441,7 +439,7 @@ describe('EventEmitter Priority Support', function () {
         }, 10);
 
         $emitter->removeListener('test.event', $listener);
-        
+
         $emitter->on('test.event', $listener, 5);
 
         $emitter->emit('test.event');

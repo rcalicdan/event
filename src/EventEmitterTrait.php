@@ -41,7 +41,7 @@ trait EventEmitterTrait
                 return $this->throwOnListenerError;
             }
 
-            return env('EVENT_THROW_ON_ERROR', false);
+            return (bool) env('EVENT_THROW_ON_ERROR', false);
         } catch (EnvFileNotFoundException) {
             // If env file is not found, default to false
             return false;
@@ -51,12 +51,12 @@ trait EventEmitterTrait
     /**
      * Attaches a callback to an event, enabling code to react to the event state changes.
      *
-     * @param string|EventEnum $event The name of the event to listen for.
+     * @param string|\BackedEnum $event The name of the event to listen for.
      * @param callable $callback The function to execute when the event occurs.
      * @param int $priority The priority of the listener (higher = executed first). Default: 0
      * @return static
      */
-    public function on(string|EventEnum $event, callable $callback, int $priority = 0): self
+    public function on(string|\BackedEnum $event, callable $callback, int $priority = 0): self
     {
         $eventName = $this->normalizeEvent($event);
         $this->listeners[$eventName] ??= [];
@@ -75,12 +75,12 @@ trait EventEmitterTrait
      * Attaches a callback that is automatically removed after its first execution.
      * Useful for one-time setup or teardown logic without manual cleanup.
      *
-     * @param string|EventEnum $event The name of the event to listen for.
+     * @param string|\BackedEnum $event The name of the event to listen for.
      * @param callable $callback The function to execute once.
      * @param int $priority The priority of the listener (higher = executed first). Default: 0
      * @return static
      */
-    public function once(string|EventEnum $event, callable $callback, int $priority = 0): self
+    public function once(string|\BackedEnum $event, callable $callback, int $priority = 0): self
     {
         $wrapper = null;
         $wrapper = function (...$args) use ($event, $callback, &$wrapper) {
@@ -96,11 +96,11 @@ trait EventEmitterTrait
     /**
      * Detaches a specific callback from an event to prevent memory leaks and manage resources.
      *
-     * @param string|EventEnum $event The name of the event.
+     * @param string|\BackedEnum $event The name of the event.
      * @param callable $callback The specific listener to remove.
      * @return static
      */
-    public function removeListener(string|EventEnum $event, callable $callback): self
+    public function removeListener(string|\BackedEnum $event, callable $callback): self
     {
         $eventName = $this->normalizeEvent($event);
 
@@ -142,10 +142,10 @@ trait EventEmitterTrait
     /**
      * Broadcasts an event to all registered listeners, announcing that something meaningful has occurred.
      *
-     * @param string|EventEnum $event The name of the event to broadcast.
+     * @param string|\BackedEnum $event The name of the event to broadcast.
      * @param mixed ...$args The data to pass to each listener.
      */
-    public function emit(string|EventEnum $event, mixed ...$args): void
+    public function emit(string|\BackedEnum $event, mixed ...$args): void
     {
         $eventName = $this->normalizeEvent($event);
 
@@ -183,9 +183,9 @@ trait EventEmitterTrait
     /**
      * Checks if any listeners are registered, which can be used to avoid expensive work if no one is listening.
      *
-     * @param string|EventEnum $event The name of the event to check.
+     * @param string|\BackedEnum $event The name of the event to check.
      */
-    public function hasListeners(string|EventEnum $event): bool
+    public function hasListeners(string|\BackedEnum $event): bool
     {
         $eventName = $this->normalizeEvent($event);
         return isset($this->listeners[$eventName]) && $this->listeners[$eventName] !== [];
@@ -194,9 +194,9 @@ trait EventEmitterTrait
     /**
      * Detaches all listeners, a crucial cleanup step to prevent memory leaks when a stream is closed.
      *
-     * @param string|EventEnum|null $event The event to clear, or null to clear all events.
+     * @param string|\BackedEnum|null $event The event to clear, or null to clear all events.
      */
-    public function removeAllListeners(string|EventEnum|null $event = null): void
+    public function removeAllListeners(string|\BackedEnum|null $event = null): void
     {
         if ($event === null) {
             $this->listeners = [];
@@ -211,8 +211,8 @@ trait EventEmitterTrait
     /**
      * Normalize event to string
      */
-    private function normalizeEvent(string|EventEnum $event): string
+    private function normalizeEvent(string|\BackedEnum $event): string
     {
-        return $event instanceof EventEnum ? $event->getName() : $event;
+        return $event instanceof \BackedEnum ? (string) $event->value : $event;
     }
 }

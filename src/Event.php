@@ -73,7 +73,7 @@ class Event
     /**
      * Attaches a callback to an event.
      */
-    public static function on(string|EventEnum $event, callable $callback, int $priority = 0): EventEmitterInterface
+    public static function on(string|\BackedEnum $event, callable $callback, int $priority = 0): EventEmitterInterface
     {
         return self::getInstance()->on($event, $callback, $priority);
     }
@@ -81,7 +81,7 @@ class Event
     /**
      * Attaches a one-time callback to an event.
      */
-    public static function once(string|EventEnum $event, callable $callback, int $priority = 0): EventEmitterInterface
+    public static function once(string|\BackedEnum $event, callable $callback, int $priority = 0): EventEmitterInterface
     {
         return self::getInstance()->once($event, $callback, $priority);
     }
@@ -89,7 +89,7 @@ class Event
     /**
      * Removes a specific listener from an event.
      */
-    public static function removeListener(string|EventEnum $event, callable $callback): EventEmitterInterface
+    public static function removeListener(string|\BackedEnum $event, callable $callback): EventEmitterInterface
     {
         return self::getInstance()->removeListener($event, $callback);
     }
@@ -97,7 +97,7 @@ class Event
     /**
      * Emits an event to all registered listeners.
      */
-    public static function emit(string|EventEnum $event, mixed ...$args): void
+    public static function emit(string|\BackedEnum $event, mixed ...$args): void
     {
         self::getInstance()->emit($event, ...$args);
     }
@@ -105,7 +105,7 @@ class Event
     /**
      * Checks if an event has any listeners.
      */
-    public static function hasListeners(string|EventEnum $event): bool
+    public static function hasListeners(string|\BackedEnum $event): bool
     {
         return self::getInstance()->hasListeners($event);
     }
@@ -113,7 +113,7 @@ class Event
     /**
      * Removes all listeners for a specific event or all events.
      */
-    public static function removeAllListeners(string|EventEnum|null $event = null): void
+    public static function removeAllListeners(string|\BackedEnum|null $event = null): void
     {
         self::getInstance()->removeAllListeners($event);
     }
