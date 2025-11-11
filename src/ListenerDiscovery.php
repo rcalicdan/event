@@ -8,6 +8,7 @@ use Rcalicdan\Event\Attributes\Listener;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
+use ReflectionMethod;
 
 class ListenerDiscovery
 {
@@ -67,34 +68,76 @@ class ListenerDiscovery
     {
         try {
             $reflection = new ReflectionClass($className);
-            $attributes = $reflection->getAttributes(Listener::class);
+            
+            self::registerClassListeners($reflection);
+            self::registerMethodListeners($reflection);
+            
+        } catch (\ReflectionException $e) {
+            // Skip classes that can't be reflected
+        }
+    }
 
-            if ($attributes === []) {
-                return;
+    /**
+     * Register class-level listener attributes
+     */
+    private static function registerClassListeners(ReflectionClass $reflection): void
+    {
+        $attributes = $reflection->getAttributes(Listener::class);
+
+        if ($attributes === []) {
+            return;
+        }
+
+        $instance = $reflection->newInstance();
+
+        foreach ($attributes as $attribute) {
+            /** @var Listener $listener */
+            $listener = $attribute->newInstance();
+
+            $method = $listener->method;
+
+            if (!method_exists($instance, $method)) {
+                throw new \RuntimeException(
+                    "Method {$method} does not exist on {$reflection->getName()}"
+                );
             }
 
-            $instance = new $className();
+            $callable = [$instance, $method];
+            
+            if (is_callable($callable)) {
+                Event::on($listener->event, $callable);
+            }
+        }
+    }
+
+    /**
+     * Register method-level listener attributes
+     */
+    private static function registerMethodListeners(ReflectionClass $reflection): void
+    {
+        $instance = null;
+
+        foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
+            $attributes = $method->getAttributes(Listener::class);
+
+            if ($attributes === []) {
+                continue;
+            }
+
+            if ($instance === null) {
+                $instance = $reflection->newInstance();
+            }
 
             foreach ($attributes as $attribute) {
                 /** @var Listener $listener */
                 $listener = $attribute->newInstance();
 
-                $method = $listener->method;
-
-                if (!method_exists($instance, $method)) {
-                    throw new \RuntimeException(
-                        "Method {$method} does not exist on {$className}"
-                    );
-                }
-
-                $callable = [$instance, $method];
+                $callable = [$instance, $method->getName()];
                 
                 if (is_callable($callable)) {
                     Event::on($listener->event, $callable);
                 }
             }
-        } catch (\ReflectionException $e) {
-            // Skip classes that can't be reflected
         }
     }
 

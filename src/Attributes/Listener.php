@@ -6,7 +6,11 @@ namespace Rcalicdan\Event\Attributes;
 
 use Rcalicdan\Event\EventEnum;
 
-#[\Attribute(\Attribute::TARGET_CLASS | \Attribute::IS_REPEATABLE)]
+#[\Attribute(
+    \Attribute::TARGET_CLASS | 
+    \Attribute::TARGET_METHOD |
+    \Attribute::IS_REPEATABLE
+)]
 class Listener
 {
     public readonly string $event;
