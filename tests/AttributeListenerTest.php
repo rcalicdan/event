@@ -172,7 +172,7 @@ describe('Basic Listener Discovery', function () {
             namespace: 'Tests\\Fixtures\\Listeners'
         );
 
-        expect(true)->toBeTrue(); 
+        expect(true)->toBeTrue();
     });
 });
 
@@ -296,8 +296,8 @@ describe('Priority-based Listener Execution', function () {
         );
 
         ob_start();
-        Event::emit('priority.multi.event1');
-        Event::emit('priority.multi.event2');
+        Event::emit('priority.multi.event1', 'priority.multi.event1'); 
+        Event::emit('priority.multi.event2', 'priority.multi.event2'); 
         $output = ob_get_clean();
 
         expect($output)->toContain('Multi-event handler for event1 (priority 100)')
