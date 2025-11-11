@@ -21,12 +21,6 @@ afterEach(function () {
     ListenerDiscovery::reset();
 });
 
-test('debug - check if functions are being loaded', function () {
-    printf('Has simple listener: %s', Event::hasListeners('function.simple') ? 'true' : 'false');
-    
-    expect(Event::hasListeners('function.simple'))->toBeTrue();
-});
-
 test('simple function listener works', function () {
     ob_start();
     Event::emit('function.simple');

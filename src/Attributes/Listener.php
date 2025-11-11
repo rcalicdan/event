@@ -18,7 +18,8 @@ class Listener
 
     public function __construct(
         string|EventEnum $event,
-        public string $method = 'handle'
+        public string $method = 'handle',
+        public int $priority = 0  
     ) {
         $this->event = $event instanceof EventEnum ? $event->getName() : $event;
     }

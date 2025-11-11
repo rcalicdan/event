@@ -11,9 +11,10 @@ interface EventEmitterInterface
      *
      * @param string|EventEnum $event The name of the event to listen for.
      * @param callable $callback The function to execute when the event occurs.
+     * @param int $priority The priority of the listener (higher = executed first). Default: 0
      * @return static
      */
-    public function on(string|EventEnum $event, callable $callback): self;
+    public function on(string|EventEnum $event, callable $callback, int $priority = 0): self;
 
     /**
      * Attaches a callback that is automatically removed after its first execution.
@@ -21,9 +22,10 @@ interface EventEmitterInterface
      *
      * @param string|EventEnum $event The name of the event to listen for.
      * @param callable $callback The function to execute once.
+     * @param int $priority The priority of the listener (higher = executed first). Default: 0
      * @return static
      */
-    public function once(string|EventEnum $event, callable $callback): self;
+    public function once(string|EventEnum $event, callable $callback, int $priority = 0): self;
 
     /**
      * Detaches a specific callback from an event to prevent memory leaks and manage resources.

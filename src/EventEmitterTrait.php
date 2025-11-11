@@ -10,7 +10,7 @@ use function Rcalicdan\ConfigLoader\env;
 
 trait EventEmitterTrait
 {
-    /** @var array<string, array<int, callable>> */
+    /** @var array<string, array<int, array{callback: callable, priority: int}>> */
     private array $listeners = [];
 
     /** @var int */
@@ -18,6 +18,9 @@ trait EventEmitterTrait
 
     /** @var bool|null */
     private ?bool $throwOnListenerError = null;
+
+    /** @var array<string, bool> */
+    private array $sortedEvents = [];
 
     /**
      * Configure whether to throw exceptions from listeners or emit them as 'error' events
@@ -50,13 +53,20 @@ trait EventEmitterTrait
      *
      * @param string|EventEnum $event The name of the event to listen for.
      * @param callable $callback The function to execute when the event occurs.
+     * @param int $priority The priority of the listener (higher = executed first). Default: 0
      * @return static
      */
-    public function on(string|EventEnum $event, callable $callback): self
+    public function on(string|EventEnum $event, callable $callback, int $priority = 0): self
     {
         $eventName = $this->normalizeEvent($event);
         $this->listeners[$eventName] ??= [];
-        $this->listeners[$eventName][$this->listenerIdCounter++] = $callback;
+        $this->listeners[$eventName][$this->listenerIdCounter++] = [
+            'callback' => $callback,
+            'priority' => $priority,
+        ];
+        
+        // Mark this event as needing to be sorted
+        $this->sortedEvents[$eventName] = false;
 
         return $this;
     }
@@ -67,9 +77,10 @@ trait EventEmitterTrait
      *
      * @param string|EventEnum $event The name of the event to listen for.
      * @param callable $callback The function to execute once.
+     * @param int $priority The priority of the listener (higher = executed first). Default: 0
      * @return static
      */
-    public function once(string|EventEnum $event, callable $callback): self
+    public function once(string|EventEnum $event, callable $callback, int $priority = 0): self
     {
         $wrapper = null;
         $wrapper = function (...$args) use ($event, $callback, &$wrapper) {
@@ -77,7 +88,7 @@ trait EventEmitterTrait
             $callback(...$args);
         };
 
-        $this->on($event, $wrapper);
+        $this->on($event, $wrapper, $priority);
 
         return $this;
     }
@@ -98,16 +109,34 @@ trait EventEmitterTrait
         }
 
         foreach ($this->listeners[$eventName] as $id => $listener) {
-            if ($listener === $callback) {
+            if ($listener['callback'] === $callback) {
                 unset($this->listeners[$eventName][$id]);
             }
         }
 
         if ($this->listeners[$eventName] === []) {
             unset($this->listeners[$eventName]);
+            unset($this->sortedEvents[$eventName]);
         }
 
         return $this;
+    }
+
+    /**
+     * Sort listeners by priority (higher priority first)
+     */
+    private function sortListeners(string $eventName): void
+    {
+        if (!isset($this->listeners[$eventName]) || ($this->sortedEvents[$eventName] ?? false)) {
+            return;
+        }
+
+        uasort($this->listeners[$eventName], function ($a, $b) {
+            // Sort in descending order (higher priority first)
+            return $b['priority'] <=> $a['priority'];
+        });
+
+        $this->sortedEvents[$eventName] = true;
     }
 
     /**
@@ -124,9 +153,12 @@ trait EventEmitterTrait
             return;
         }
 
+        // Sort listeners by priority before emitting
+        $this->sortListeners($eventName);
+
         foreach ($this->listeners[$eventName] as $listener) {
             try {
-                $listener(...$args);
+                $listener['callback'](...$args);
             } catch (\Throwable $e) {
                 if ($this->shouldThrowOnListenerError()) {
                     throw $e;
@@ -168,9 +200,11 @@ trait EventEmitterTrait
     {
         if ($event === null) {
             $this->listeners = [];
+            $this->sortedEvents = [];
         } else {
             $eventName = $this->normalizeEvent($event);
             unset($this->listeners[$eventName]);
+            unset($this->sortedEvents[$eventName]);
         }
     }
 

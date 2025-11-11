@@ -73,17 +73,17 @@ class Event
     /**
      * Attaches a callback to an event.
      */
-    public static function on(string|EventEnum $event, callable $callback): EventEmitterInterface
+    public static function on(string|EventEnum $event, callable $callback, int $priority = 0): EventEmitterInterface
     {
-        return self::getInstance()->on($event, $callback);
+        return self::getInstance()->on($event, $callback, $priority);
     }
 
     /**
      * Attaches a one-time callback to an event.
      */
-    public static function once(string|EventEnum $event, callable $callback): EventEmitterInterface
+    public static function once(string|EventEnum $event, callable $callback, int $priority = 0): EventEmitterInterface
     {
-        return self::getInstance()->once($event, $callback);
+        return self::getInstance()->once($event, $callback, $priority);
     }
 
     /**

@@ -163,7 +163,7 @@ class ListenerDiscovery
                 $callable = function_exists($functionName) ? $functionName : null;
                 
                 if ($callable !== null) {
-                    Event::on($listener->event, $callable);
+                    Event::on($listener->event, $callable, $listener->priority);
                     self::$registeredFunctions[] = $functionName;
                 }
             }
@@ -218,7 +218,7 @@ class ListenerDiscovery
             $callable = [$instance, $method];
             
             if (is_callable($callable)) {
-                Event::on($listener->event, $callable);
+                Event::on($listener->event, $callable, $listener->priority);
             }
         }
     }
@@ -248,7 +248,7 @@ class ListenerDiscovery
                 $callable = [$instance, $method->getName()];
                 
                 if (is_callable($callable)) {
-                    Event::on($listener->event, $callable);
+                    Event::on($listener->event, $callable, $listener->priority);
                 }
             }
         }

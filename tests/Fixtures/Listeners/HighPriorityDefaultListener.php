@@ -1,0 +1,16 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Fixtures\Listeners;
+
+use Rcalicdan\Event\Attributes\Listener;
+
+#[Listener(event: 'priority.default.event', priority: 100)]
+class HighPriorityDefaultListener
+{
+    public function handle(): void
+    {
+        echo 'High priority | ';
+    }
+}
