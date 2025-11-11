@@ -9,6 +9,7 @@ use Rcalicdan\Event\EventEnum;
 #[\Attribute(
     \Attribute::TARGET_CLASS | 
     \Attribute::TARGET_METHOD |
+    \Attribute::TARGET_FUNCTION |  
     \Attribute::IS_REPEATABLE
 )]
 class Listener
