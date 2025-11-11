@@ -43,7 +43,6 @@ trait EventEmitterTrait
 
             return (bool) env('EVENT_THROW_ON_ERROR', false);
         } catch (EnvFileNotFoundException) {
-            // If env file is not found, default to false
             return false;
         }
     }
@@ -64,8 +63,7 @@ trait EventEmitterTrait
             'callback' => $callback,
             'priority' => $priority,
         ];
-        
-        // Mark this event as needing to be sorted
+
         $this->sortedEvents[$eventName] = false;
 
         return $this;
@@ -132,7 +130,6 @@ trait EventEmitterTrait
         }
 
         uasort($this->listeners[$eventName], function ($a, $b) {
-            // Sort in descending order (higher priority first)
             return $b['priority'] <=> $a['priority'];
         });
 
@@ -153,12 +150,19 @@ trait EventEmitterTrait
             return;
         }
 
-        // Sort listeners by priority before emitting
         $this->sortListeners($eventName);
 
+        $propagationContext = new PropagationContext();
+        $argsWithContext = [...$args, $propagationContext];
+
         foreach ($this->listeners[$eventName] as $listener) {
+            if ($propagationContext->isPropagationStopped()) {
+                break;
+            }
+
             try {
-                $listener['callback'](...$args);
+
+                $listener['callback'](...$argsWithContext);
             } catch (\Throwable $e) {
                 if ($this->shouldThrowOnListenerError()) {
                     throw $e;
