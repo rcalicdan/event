@@ -86,9 +86,12 @@ describe('error event handling', function () {
             throw new RuntimeException('Original error');
         });
 
-        expect(fn () => Event::emit('test.event'))
+
+        expect(fn() => Event::emit('test.event'))
             ->not->toThrow(Exception::class);
-    });
+
+        // The error message was written to STDERR (which we see in output)
+    })->note('Expected to see error output - this is the correct behavior');
 
     it('handles different exception types', function () {
         $exceptions = [];
@@ -121,14 +124,14 @@ describe('error event handling', function () {
 
 describe('listener discovery error handling', function () {
     it('throws exception when directory does not exist', function () {
-        expect(fn () => ListenerDiscovery::discover(
+        expect(fn() => ListenerDiscovery::discover(
             '/nonexistent/path',
             'App\\Listeners'
         ))->toThrow(InvalidArgumentException::class, 'Directory not found');
     });
 
     it('throws exception when method does not exist on class-level listener', function () {
-        expect(fn () => ListenerDiscovery::discover(
+        expect(fn() => ListenerDiscovery::discover(
             __DIR__ . '/Fixtures/InvalidListeners',
             'Tests\\Fixtures\\InvalidListeners'
         ))->toThrow(RuntimeException::class, 'does not exist');
@@ -140,7 +143,7 @@ describe('listener discovery error handling', function () {
         mkdir($tempDir);
         file_put_contents($tempDir . '/InvalidClass.php', '<?php invalid syntax');
 
-        expect(fn () => ListenerDiscovery::discover($tempDir, 'Temp'))
+        expect(fn() => ListenerDiscovery::discover($tempDir, 'Temp'))
             ->not->toThrow(Exception::class);
 
         // Cleanup
@@ -154,33 +157,28 @@ describe('listener discovery error handling', function () {
         file_put_contents($tempDir . '/readme.txt', 'Not a PHP file');
         file_put_contents($tempDir . '/config.json', '{}');
 
-        expect(fn () => ListenerDiscovery::discover($tempDir, 'Temp'))
+        expect(fn() => ListenerDiscovery::discover($tempDir, 'Temp'))
             ->not->toThrow(Exception::class);
 
-        // Cleanup
+
         unlink($tempDir . '/readme.txt');
         unlink($tempDir . '/config.json');
         rmdir($tempDir);
     });
 
     it('handles classes without listener attributes gracefully', function () {
-        // ✅ FIX: Use a specific subdirectory that exists and has valid PHP files
-        // but no listener attributes
         $tempDir = sys_get_temp_dir() . '/event-test-' . uniqid();
         mkdir($tempDir);
-        
-        // Create a valid PHP class without listener attributes
-        file_put_contents($tempDir . '/RegularClass.php', '<?php
-namespace Temp;
-class RegularClass {
-    public function someMethod() {}
-}
-');
 
-        expect(fn () => ListenerDiscovery::discover($tempDir, 'Temp'))
+        file_put_contents($tempDir . '/RegularClass.php', '<?php
+        namespace Temp;
+        class RegularClass {
+        public function someMethod() {}
+        }');
+
+        expect(fn() => ListenerDiscovery::discover($tempDir, 'Temp'))
             ->not->toThrow(Exception::class);
 
-        // Cleanup
         unlink($tempDir . '/RegularClass.php');
         rmdir($tempDir);
     });
@@ -194,7 +192,6 @@ describe('enum error handling', function () {
             $called = true;
         });
 
-        // String event should still work
         Event::emit('invalid.enum');
 
         expect($called)->toBeTrue();
@@ -203,9 +200,7 @@ describe('enum error handling', function () {
 
 describe('callback error handling', function () {
     it('handles non-callable gracefully in on()', function () {
-        // ✅ FIX: This SHOULD throw TypeError because of callable type hint
-        // The type system is working correctly, so we test that it throws
-        expect(fn () => Event::on('test', 'not_a_function'))
+        expect(fn() => Event::on('test', 'not_a_function'))
             ->toThrow(TypeError::class);
     });
 
@@ -231,13 +226,10 @@ describe('callback error handling', function () {
     });
 
     it('handles recursive error events', function () {
-        // ✅ FIX: Error handler throwing doesn't recurse because it checks
-        // if event !== 'error', so depth stays at 1
         $depth = 0;
 
         Event::on('error', function ($e) use (&$depth) {
             $depth++;
-            // This won't recurse because emit() checks: if ($event !== 'error')
         });
 
         Event::on('test.event', function () {
@@ -246,7 +238,6 @@ describe('callback error handling', function () {
 
         Event::emit('test.event');
 
-        // Error handler is called once, doesn't recurse
         expect($depth)->toBe(1);
     });
 });
@@ -314,7 +305,6 @@ describe('type safety error handling', function () {
 
         Event::emit('');
 
-        // Should work with empty string (edge case)
         expect($called)->toBeTrue();
     });
 
@@ -349,19 +339,19 @@ describe('concurrency simulation', function () {
 
         Event::on('test.event', function () use (&$results) {
             $results[] = 'original';
-            
+
             Event::on('test.event', function () use (&$results) {
                 $results[] = 'added during';
             });
         });
 
         Event::emit('test.event');
-        
+
         expect($results)->toBe(['original']);
 
         $results = [];
         Event::emit('test.event');
-        
+
         expect($results)->toBe(['original', 'added during']);
     });
 
@@ -370,7 +360,7 @@ describe('concurrency simulation', function () {
 
         Event::once('test.event', function () use (&$results) {
             $results[] = 'first once';
-            
+
             Event::once('test.event', function () use (&$results) {
                 $results[] = 'second once';
             });
