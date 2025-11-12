@@ -66,4 +66,51 @@ interface EventEmitterInterface
      * @return static
      */
     public function setThrowOnListenerError(bool $throw): self;
+
+    /**
+     * Get the number of listeners for a specific event or all events
+     *
+     * @param string|\BackedEnum|null $event The event name, or null to count all listeners
+     * @return int
+     */
+    public function listenerCount(string|\BackedEnum|null $event = null): int;
+
+    /**
+     * Get all event names that have registered listeners
+     *
+     * @return array<int, string>
+     */
+    public function eventNames(): array;
+
+    /**
+     * Get all listeners for a specific event
+     *
+     * @param string|\BackedEnum $event The event name
+     * @return array<int, callable>
+     */
+    public function listeners(string|\BackedEnum $event): array;
+
+    /**
+     * Get the raw listeners data for a specific event (includes priority info)
+     *
+     * @param string|\BackedEnum $event The event name
+     * @return array<int, array{callback: callable, priority: int}>
+     */
+    public function rawListeners(string|\BackedEnum $event): array;
+
+    /**
+     * Set the maximum number of listeners for an event before a warning is emitted.
+     * Set to 0 to disable the warning.
+     *
+     * @param int $max The maximum number of listeners (0 = unlimited)
+     * @return static
+     */
+    public function setMaxListeners(int $max): self;
+
+    /**
+     * Get the current maximum listeners setting
+     *
+     * @return int
+     */
+    public function getMaxListeners(): int;
 }

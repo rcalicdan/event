@@ -71,6 +71,23 @@ class Event
     }
 
     /**
+     * Set the maximum number of listeners for an event before a warning is emitted.
+     * Set to 0 to disable the warning.
+     */
+    public static function setMaxListeners(int $max): void
+    {
+        self::getInstance()->setMaxListeners($max);
+    }
+
+    /**
+     * Get the current maximum listeners setting
+     */
+    public static function getMaxListeners(): int
+    {
+        return self::getInstance()->getMaxListeners();
+    }
+
+    /**
      * Attaches a callback to an event.
      */
     public static function on(string|\BackedEnum $event, callable $callback, int $priority = 0): EventEmitterInterface
@@ -116,5 +133,43 @@ class Event
     public static function removeAllListeners(string|\BackedEnum|null $event = null): void
     {
         self::getInstance()->removeAllListeners($event);
+    }
+
+    /**
+     * Get the number of listeners for a specific event or all events.
+     */
+    public static function listenerCount(string|\BackedEnum|null $event = null): int
+    {
+        return self::getInstance()->listenerCount($event);
+    }
+
+    /**
+     * Get all event names that have registered listeners.
+     *
+     * @return array<int, string>
+     */
+    public static function eventNames(): array
+    {
+        return self::getInstance()->eventNames();
+    }
+
+    /**
+     * Get all listeners for a specific event.
+     *
+     * @return array<int, callable>
+     */
+    public static function listeners(string|\BackedEnum $event): array
+    {
+        return self::getInstance()->listeners($event);
+    }
+
+    /**
+     * Get the raw listeners data for a specific event (includes priority info).
+     *
+     * @return array<int, array{callback: callable, priority: int}>
+     */
+    public static function rawListeners(string|\BackedEnum $event): array
+    {
+        return self::getInstance()->rawListeners($event);
     }
 }
