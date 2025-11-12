@@ -83,7 +83,7 @@ trait EventEmitterTrait
         $wrapper = null;
         $wrapper = function (...$args) use ($event, $callback, &$wrapper) {
             $this->removeListener($event, $wrapper);
-            $callback(...$args);
+            return $callback(...$args);
         };
 
         $this->on($event, $wrapper, $priority);
@@ -146,23 +146,20 @@ trait EventEmitterTrait
     {
         $eventName = $this->normalizeEvent($event);
 
-        if (! isset($this->listeners[$eventName])) {
+        if (!isset($this->listeners[$eventName])) {
             return;
         }
 
         $this->sortListeners($eventName);
 
-        $propagationContext = new PropagationContext();
-        $argsWithContext = [...$args, $propagationContext];
-
         foreach ($this->listeners[$eventName] as $listener) {
-            if ($propagationContext->isPropagationStopped()) {
-                break;
-            }
-
             try {
+                $result = $listener['callback'](...$args);
 
-                $listener['callback'](...$argsWithContext);
+                // Stop propagation if listener returns false
+                if ($result === false) {
+                    break;
+                }
             } catch (\Throwable $e) {
                 if ($this->shouldThrowOnListenerError()) {
                     throw $e;
