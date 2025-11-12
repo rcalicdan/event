@@ -13,6 +13,9 @@ trait EventEmitterTrait
     /** @var array<string, array<int, array{callback: callable, priority: int}>> */
     private array $listeners = [];
 
+    /** @var array<string, array<int, array{callback: callable, priority: int}>> */
+    private array $wildcardListeners = [];
+
     /** @var int */
     private int $listenerIdCounter = 0;
 
@@ -67,11 +70,20 @@ trait EventEmitterTrait
     public function on(string|\BackedEnum $event, callable $callback, int $priority = 0): self
     {
         $eventName = $this->normalizeEvent($event);
-        $this->listeners[$eventName] ??= [];
-        $this->listeners[$eventName][$this->listenerIdCounter++] = [
-            'callback' => $callback,
-            'priority' => $priority,
-        ];
+
+        if (strpos($eventName, '*') !== false) {
+            $this->wildcardListeners[$eventName] ??= [];
+            $this->wildcardListeners[$eventName][$this->listenerIdCounter++] = [
+                'callback' => $callback,
+                'priority' => $priority,
+            ];
+        } else {
+            $this->listeners[$eventName] ??= [];
+            $this->listeners[$eventName][$this->listenerIdCounter++] = [
+                'callback' => $callback,
+                'priority' => $priority,
+            ];
+        }
 
         $this->sortedEvents[$eventName] = false;
         $this->checkMaxListeners($eventName);
@@ -308,18 +320,16 @@ trait EventEmitterTrait
      */
     private function getMatchingListeners(string $eventName): array
     {
-        $hasExactMatch = isset($this->listeners[$eventName]);
-
         $exactListeners = [];
         $wildcardListeners = [];
 
-        if ($hasExactMatch) {
+        if (isset($this->listeners[$eventName])) {
             $this->sortListeners($eventName);
             $exactListeners = $this->listeners[$eventName];
         }
 
-        foreach ($this->listeners as $pattern => $listeners) {
-            if ($pattern !== $eventName && strpos($pattern, '*') !== false) {
+        if (!empty($this->wildcardListeners)) {
+            foreach ($this->wildcardListeners as $pattern => $listeners) {
                 if ($this->matchesPattern($pattern, $eventName)) {
                     $this->sortListeners($pattern);
                     $wildcardListeners = array_merge($wildcardListeners, $listeners);
@@ -336,10 +346,7 @@ trait EventEmitterTrait
         }
 
         $matchingListeners = array_merge($exactListeners, $wildcardListeners);
-
-        if (!empty($exactListeners)) {
-            usort($matchingListeners, fn($a, $b) => $b['priority'] <=> $a['priority']);
-        }
+        usort($matchingListeners, fn($a, $b) => $b['priority'] <=> $a['priority']);
 
         return $matchingListeners;
     }
@@ -395,7 +402,7 @@ trait EventEmitterTrait
             return;
         }
 
-        $count = count($this->listeners[$eventName] ?? []);
+        $count = count($this->listeners[$eventName] ?? []) + count($this->wildcardListeners[$eventName] ?? []);
 
         if ($count > $this->maxListeners) {
             $this->maxListenersWarned[$eventName] = true;
