@@ -155,7 +155,7 @@ trait EventEmitterTrait
         $eventName = $this->normalizeEvent($event);
         $matchingListeners = $this->getMatchingListeners($eventName);
 
-        if (empty($matchingListeners)) {
+        if ($matchingListeners === []) {
             return;
         }
 
@@ -328,7 +328,7 @@ trait EventEmitterTrait
             $exactListeners = $this->listeners[$eventName];
         }
 
-        if (!empty($this->wildcardListeners)) {
+        if ($this->wildcardListeners !== []) {
             foreach ($this->wildcardListeners as $pattern => $listeners) {
                 if ($this->matchesPattern($pattern, $eventName)) {
                     $this->sortListeners($pattern);
@@ -337,11 +337,11 @@ trait EventEmitterTrait
             }
         }
 
-        if (empty($exactListeners) && empty($wildcardListeners)) {
+        if ($exactListeners === [] && $wildcardListeners === []) {
             return [];
         }
 
-        if (empty($wildcardListeners)) {
+        if ($wildcardListeners === []) {
             return $exactListeners;
         }
 

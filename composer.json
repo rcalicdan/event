@@ -17,7 +17,8 @@
     "prefer-stable": true,
     "require": {
         "php": "^8.2",
-        "rcalicdan/config-loader": "^1.0"
+        "rcalicdan/config-loader": "^1.0",
+        "hiblaphp/async":"dev-main"
     },
     "require-dev": {
         "laravel/pint": "^1.10",
