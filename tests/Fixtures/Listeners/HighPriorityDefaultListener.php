@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\Listeners;
 
-use Rcalicdan\Event\Attributes\Listener;
+use Rcalicdan\Event\Attributes\ListenTo;
 
-#[Listener(event: 'priority.default.event', priority: 100)]
+#[ListenTo(event: 'priority.default.event', priority: 100)]
 class HighPriorityDefaultListener
 {
     public function handle(): void

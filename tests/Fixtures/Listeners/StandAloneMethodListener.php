@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\Listeners;
 
-use Rcalicdan\Event\Attributes\Listener;
+use Rcalicdan\Event\Attributes\ListenTo;
 
 class StandAloneMethodListener
 {
-    #[Listener(event: 'standalone.method')]
+    #[ListenTo(event: 'standalone.method')]
     public function handleStandalone(): void
     {
         echo 'Standalone method handler';

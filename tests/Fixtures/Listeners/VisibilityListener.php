@@ -4,23 +4,23 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\Listeners;
 
-use Rcalicdan\Event\Attributes\Listener;
+use Rcalicdan\Event\Attributes\ListenTo;
 
 class VisibilityListener
 {
-    #[Listener(event: 'public.event')]
+    #[ListenTo(event: 'public.event')]
     public function publicMethod(): void
     {
         echo 'Public method handler';
     }
 
-    #[Listener(event: 'protected.event')]
+    #[ListenTo(event: 'protected.event')]
     protected function protectedMethod(): void
     {
         echo 'Protected method handler';
     }
 
-    #[Listener(event: 'private.event')]
+    #[ListenTo(event: 'private.event')]
     private function privateMethod(): void
     {
         echo 'Private method handler';

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\Listeners;
 
-use Rcalicdan\Event\Attributes\Listener;
+use Rcalicdan\Event\Attributes\ListenTo;
 
 class MultiAttributeMethodListener
 {
-    #[Listener(event: 'email.sent')]
-    #[Listener(event: 'sms.sent')]
+    #[ListenTo(event: 'email.sent')]
+    #[ListenTo(event: 'sms.sent')]
     public function handleNotification(): void
     {
         echo 'Notification sent';

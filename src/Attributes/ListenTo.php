@@ -10,7 +10,7 @@ namespace Rcalicdan\Event\Attributes;
     \Attribute::TARGET_FUNCTION |  
     \Attribute::IS_REPEATABLE
 )]
-class Listener
+class ListenTo
 {
     public readonly string|\BackedEnum $event;
 

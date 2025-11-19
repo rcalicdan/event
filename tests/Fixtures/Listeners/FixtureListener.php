@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\Listeners;
 
-use Rcalicdan\Event\Attributes\Listener;
+use Rcalicdan\Event\Attributes\ListenTo;
 
-#[Listener(event: 'fixture.test')]
+#[ListenTo(event: 'fixture.test')]
 class FixtureListener
 {
     public function handle(): void

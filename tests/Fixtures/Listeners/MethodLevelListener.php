@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\Listeners;
 
-use Rcalicdan\Event\Attributes\Listener;
+use Rcalicdan\Event\Attributes\ListenTo;
 
 class MethodLevelListener
 {
-    #[Listener(event: 'method.test')]
+    #[ListenTo(event: 'method.test')]
     public function handleMethodTest(): void
     {
         echo 'method listener called';

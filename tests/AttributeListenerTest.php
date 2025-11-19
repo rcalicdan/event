@@ -296,8 +296,8 @@ describe('Priority-based Listener Execution', function () {
         );
 
         ob_start();
-        Event::emit('priority.multi.event1', 'priority.multi.event1'); 
-        Event::emit('priority.multi.event2', 'priority.multi.event2'); 
+        Event::emit('priority.multi.event1', 'priority.multi.event1');
+        Event::emit('priority.multi.event2', 'priority.multi.event2');
         $output = ob_get_clean();
 
         expect($output)->toContain('Multi-event handler for event1 (priority 100)')
@@ -333,5 +333,148 @@ describe('Priority-based Listener Execution', function () {
         expect($output)->toContain('First listener')
             ->and($output)->toContain('Second listener')
             ->and($output)->toContain('Third listener');
+    });
+});
+
+describe('ListenOnce Functionality', function () {
+    test('ListenOnce class-level listener fires only once per request', function () {
+        ListenerDiscovery::discover(
+            directory: __DIR__ . '/Fixtures/Listeners/Once',
+            namespace: 'Tests\\Fixtures\\Listeners\\Once'
+        );
+
+        ob_start();
+        Event::emit('once.class.event');
+        Event::emit('once.class.event');
+        Event::emit('once.class.event');
+        $output = ob_get_clean();
+
+        expect(substr_count($output, 'Once class listener called'))->toBe(1);
+    });
+
+    test('ListenOnce method-level listener fires only once per request', function () {
+        ListenerDiscovery::discover(
+            directory: __DIR__ . '/Fixtures/Listeners/Once',
+            namespace: 'Tests\\Fixtures\\Listeners\\Once'
+        );
+
+        ob_start();
+        Event::emit('once.method.event');
+        Event::emit('once.method.event');
+        Event::emit('once.method.event');
+        $output = ob_get_clean();
+
+        expect(substr_count($output, 'Once method listener called'))->toBe(1);
+    });
+
+    test('ListenOnce function listener fires only once per request', function () {
+        ListenerDiscovery::discover(
+            directory: __DIR__ . '/Fixtures/Listeners/Once',
+            namespace: 'Tests\\Fixtures\\Listeners\\Once'
+        );
+
+        ob_start();
+        Event::emit('once.function.event');
+        Event::emit('once.function.event');
+        Event::emit('once.function.event');
+        $output = ob_get_clean();
+
+        expect(substr_count($output, 'Once function listener called'))->toBe(1);
+    });
+
+    test('ListenOnce and ListenTo can coexist on same event', function () {
+        ListenerDiscovery::discover(
+            directory: __DIR__ . '/Fixtures/Listeners/Once',
+            namespace: 'Tests\\Fixtures\\Listeners\\Once'
+        );
+
+        ob_start();
+        Event::emit('mixed.once.regular');
+        Event::emit('mixed.once.regular');
+        $output = ob_get_clean();
+
+        expect(substr_count($output, 'Once listener'))->toBe(1);
+        expect(substr_count($output, 'Regular listener'))->toBe(2);
+    });
+
+    test('ListenOnce respects priority', function () {
+        ListenerDiscovery::discover(
+            directory: __DIR__ . '/Fixtures/Listeners/Once',
+            namespace: 'Tests\\Fixtures\\Listeners\\Once'
+        );
+
+        ob_start();
+        Event::emit('once.priority.event');
+        $output = ob_get_clean();
+
+        $highPos = strpos($output, 'Once high priority');
+        $lowPos = strpos($output, 'Once low priority');
+
+        expect($highPos)->toBeLessThan($lowPos);
+    });
+
+    test('ListenOnce with enum events works correctly', function () {
+        ListenerDiscovery::discover(
+            directory: __DIR__ . '/Fixtures/Listeners/Once',
+            namespace: 'Tests\\Fixtures\\Listeners\\Once'
+        );
+
+        ob_start();
+        Event::emit('payment.refunded');
+        Event::emit('payment.refunded');
+        $output = ob_get_clean();
+
+        expect(substr_count($output, 'Payment refunded once'))->toBe(1);
+    });
+
+    test('multiple ListenOnce attributes on same method work independently', function () {
+        ListenerDiscovery::discover(
+            directory: __DIR__ . '/Fixtures/Listeners/Once',
+            namespace: 'Tests\\Fixtures\\Listeners\\Once'
+        );
+
+        ob_start();
+        Event::emit('once.event1', 'once.event1');
+        Event::emit('once.event1', 'once.event1');
+        Event::emit('once.event2', 'once.event2');
+        Event::emit('once.event2', 'once.event2');
+        $output = ob_get_clean();
+
+        expect(substr_count($output, 'Multi-once handler: once.event1'))->toBe(1);
+        expect(substr_count($output, 'Multi-once handler: once.event2'))->toBe(1);
+    });
+
+    test('ListenOnce listener is removed after execution', function () {
+        ListenerDiscovery::discover(
+            directory: __DIR__ . '/Fixtures/Listeners/Once',
+            namespace: 'Tests\\Fixtures\\Listeners\\Once'
+        );
+
+        $initialCount = Event::listenerCount('once.removal.test');
+
+        Event::emit('once.removal.test');
+        $afterFirstEmit = Event::listenerCount('once.removal.test');
+
+        Event::emit('once.removal.test');
+        $afterSecondEmit = Event::listenerCount('once.removal.test');
+
+        expect($initialCount)->toBe(1)
+            ->and($afterFirstEmit)->toBe(0)
+            ->and($afterSecondEmit)->toBe(0);
+    });
+
+    test('quick function-based ListenOnce test', function () {
+        // Quick inline test without fixtures
+        $counter = 0;
+
+        Event::once('quick.test', function () use (&$counter) {
+            $counter++;
+        });
+
+        Event::emit('quick.test');
+        Event::emit('quick.test');
+        Event::emit('quick.test');
+
+        expect($counter)->toBe(1);
     });
 });

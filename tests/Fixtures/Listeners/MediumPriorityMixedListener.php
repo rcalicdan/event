@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\Listeners;
 
-use Rcalicdan\Event\Attributes\Listener;
+use Rcalicdan\Event\Attributes\ListenTo;
 
-#[Listener(event: 'priority.mixed.event', priority: 50)]
+#[ListenTo(event: 'priority.mixed.event', priority: 50)]
 class MediumPriorityMixedListener
 {
     public function handle(): void

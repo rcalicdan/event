@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\InvalidListeners;
 
-use Rcalicdan\Event\Attributes\Listener;
+use Rcalicdan\Event\Attributes\ListenTo;
 
-#[Listener('throwing.function')]
+#[ListenTo('throwing.function')]
 function throwingFunction(): void
 {
     throw new \RuntimeException('Function listener error');

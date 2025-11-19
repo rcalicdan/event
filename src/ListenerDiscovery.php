@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Rcalicdan\Event;
 
-use Rcalicdan\Event\Attributes\Listener;
+use Rcalicdan\Event\Attributes\ListenTo;
+use Rcalicdan\Event\Attributes\ListenOnce;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
@@ -212,12 +213,11 @@ class ListenerDiscovery
 
         try {
             $reflection = new ReflectionFunction($functionName);
-            $attributes = $reflection->getAttributes(Listener::class);
-
-            if ($attributes === []) return;
-
-            foreach ($attributes as $attribute) {
-                /** @var Listener $listener */
+            
+            // Check for ListenTo attributes
+            $listenToAttributes = $reflection->getAttributes(ListenTo::class);
+            foreach ($listenToAttributes as $attribute) {
+                /** @var ListenTo $listener */
                 $listener = $attribute->newInstance();
 
                 if (function_exists($functionName)) {
@@ -225,10 +225,30 @@ class ListenerDiscovery
                         'event' => $listener->event instanceof \BackedEnum ? $listener->event->value : $listener->event,
                         'callable' => $functionName,
                         'priority' => $listener->priority,
+                        'once' => false,
                         'file' => $filePath,
                     ];
-                    self::$registeredFunctions[] = $functionName;
                 }
+            }
+            
+            $listenOnceAttributes = $reflection->getAttributes(ListenOnce::class);
+            foreach ($listenOnceAttributes as $attribute) {
+                /** @var ListenOnce $listener */
+                $listener = $attribute->newInstance();
+
+                if (function_exists($functionName)) {
+                    $discoveredListeners[] = [
+                        'event' => $listener->event instanceof \BackedEnum ? $listener->event->value : $listener->event,
+                        'callable' => $functionName,
+                        'priority' => $listener->priority,
+                        'once' => true,
+                        'file' => $filePath,
+                    ];
+                }
+            }
+            
+            if ($listenToAttributes !== [] || $listenOnceAttributes !== []) {
+                self::$registeredFunctions[] = $functionName;
             }
         } catch (\Throwable) {
         }
@@ -254,12 +274,17 @@ class ListenerDiscovery
      */
     private static function registerClassListeners(ReflectionClass $reflection, array &$discoveredListeners, string $filePath): void
     {
-        $attributes = $reflection->getAttributes(Listener::class);
-        if ($attributes === []) return;
+        $listenToAttributes = $reflection->getAttributes(ListenTo::class);
+        $listenOnceAttributes = $reflection->getAttributes(ListenOnce::class);
+        
+        if ($listenToAttributes === [] && $listenOnceAttributes === []) {
+            return;
+        }
 
         $instance = $reflection->newInstance();
-        foreach ($attributes as $attribute) {
-            /** @var Listener $listener */
+        
+        foreach ($listenToAttributes as $attribute) {
+            /** @var ListenTo $listener */
             $listener = $attribute->newInstance();
             $method = $listener->method;
 
@@ -272,6 +297,27 @@ class ListenerDiscovery
                     'event' => $listener->event instanceof \BackedEnum ? $listener->event->value : $listener->event,
                     'callable' => [$reflection->getName(), $method],
                     'priority' => $listener->priority,
+                    'once' => false,
+                    'file' => $filePath,
+                ];
+            }
+        }
+        
+        foreach ($listenOnceAttributes as $attribute) {
+            /** @var ListenOnce $listener */
+            $listener = $attribute->newInstance();
+            $method = $listener->method;
+
+            if (!method_exists($instance, $method)) {
+                throw new \RuntimeException("Method {$method} does not exist on {$reflection->getName()}");
+            }
+
+            if (is_callable([$instance, $method])) {
+                $discoveredListeners[] = [
+                    'event' => $listener->event instanceof \BackedEnum ? $listener->event->value : $listener->event,
+                    'callable' => [$reflection->getName(), $method],
+                    'priority' => $listener->priority,
+                    'once' => true,
                     'file' => $filePath,
                 ];
             }
@@ -286,15 +332,19 @@ class ListenerDiscovery
     {
         $instance = null;
         foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-            $attributes = $method->getAttributes(Listener::class);
-            if ($attributes === []) continue;
+            $listenToAttributes = $method->getAttributes(ListenTo::class);
+            $listenOnceAttributes = $method->getAttributes(ListenOnce::class);
+            
+            if ($listenToAttributes === [] && $listenOnceAttributes === []) {
+                continue;
+            }
 
             if ($instance === null) {
                 $instance = $reflection->newInstance();
             }
 
-            foreach ($attributes as $attribute) {
-                /** @var Listener $listener */
+            foreach ($listenToAttributes as $attribute) {
+                /** @var ListenTo $listener */
                 $listener = $attribute->newInstance();
 
                 if (is_callable([$instance, $method->getName()])) {
@@ -302,6 +352,22 @@ class ListenerDiscovery
                         'event' => $listener->event instanceof \BackedEnum ? $listener->event->value : $listener->event,
                         'callable' => [$reflection->getName(), $method->getName()],
                         'priority' => $listener->priority,
+                        'once' => false,
+                        'file' => $filePath,
+                    ];
+                }
+            }
+            
+            foreach ($listenOnceAttributes as $attribute) {
+                /** @var ListenOnce $listener */
+                $listener = $attribute->newInstance();
+
+                if (is_callable([$instance, $method->getName()])) {
+                    $discoveredListeners[] = [
+                        'event' => $listener->event instanceof \BackedEnum ? $listener->event->value : $listener->event,
+                        'callable' => [$reflection->getName(), $method->getName()],
+                        'priority' => $listener->priority,
+                        'once' => true,
                         'file' => $filePath,
                     ];
                 }
@@ -330,6 +396,7 @@ class ListenerDiscovery
             $callable = $listener['callable'] ?? null;
             $event = $listener['event'] ?? null;
             $priority = $listener['priority'] ?? null;
+            $once = $listener['once'] ?? false;
 
             if ($callable === null || $event === null || $priority === null) {
                 continue;
@@ -351,7 +418,12 @@ class ListenerDiscovery
                 continue;
             }
 
-            Event::on($event, $callable, $priority);
+            // Use Event::once() for one-time listeners, Event::on() for regular listeners
+            if ($once === true) {
+                Event::once($event, $callable, $priority);
+            } else {
+                Event::on($event, $callable, $priority);
+            }
         }
     }
 

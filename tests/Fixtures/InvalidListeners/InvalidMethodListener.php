@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\InvalidListeners;
 
-use Rcalicdan\Event\Attributes\Listener;
+use Rcalicdan\Event\Attributes\ListenTo;
 
-#[Listener(event: 'invalid.method', method: 'nonExistentMethod')]
+#[ListenTo(event: 'invalid.method', method: 'nonExistentMethod')]
 class InvalidMethodListener
 {
     public function handle(): void

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\InvalidListeners;
 
-use Rcalicdan\Event\Attributes\Listener;
+use Rcalicdan\Event\Attributes\ListenTo;
 
-#[Listener(event: 'throwing.event')]
+#[ListenTo(event: 'throwing.event')]
 class ThrowingListener
 {
     public function handle(): void
