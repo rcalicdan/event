@@ -13,7 +13,8 @@ beforeEach(function () {
     
     ListenerDiscovery::discover(
         __DIR__ . '/Fixtures/FunctionListeners',
-        'Tests\\Fixtures\\FunctionListeners'
+        'Tests\\Fixtures\\FunctionListeners',
+        false
     );
 });
 afterEach(function () {
