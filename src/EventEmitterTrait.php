@@ -104,9 +104,13 @@ trait EventEmitterTrait
      */
     public function once(string|\BackedEnum $event, callable $callback, int $priority = 0): self
     {
-        $wrapper = null;
         $wrapper = function (...$args) use ($event, $callback, &$wrapper) {
-            $this->removeListener($event, $wrapper);
+            $currentWrapper = $wrapper;
+            $wrapper = null;
+
+            if ($currentWrapper !== null) {
+                $this->removeListener($event, $currentWrapper);
+            }
 
             return $callback(...$args);
         };
@@ -271,7 +275,7 @@ trait EventEmitterTrait
         $this->sortListeners($eventName);
 
         return array_values(array_map(
-            fn ($listener) => $listener['callback'],
+            fn($listener) => $listener['callback'],
             $this->listeners[$eventName]
         ));
     }
@@ -352,7 +356,7 @@ trait EventEmitterTrait
         }
 
         $matchingListeners = array_merge($exactListeners, $wildcardListeners);
-        usort($matchingListeners, fn ($a, $b) => $b['priority'] <=> $a['priority']);
+        usort($matchingListeners, fn($a, $b) => $b['priority'] <=> $a['priority']);
 
         return $matchingListeners;
     }
