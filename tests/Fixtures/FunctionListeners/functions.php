@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\FunctionListeners;
 
-use Rcalicdan\Event\Attributes\ListenOnce;
 use Rcalicdan\Event\Attributes\ListenTo;
 use Tests\Fixtures\Events\PaymentEvents;
 

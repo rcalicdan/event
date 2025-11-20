@@ -31,7 +31,8 @@ describe('EventEmitter functionality', function () {
             })
             ->once('event3', function () use (&$counter) {
                 $counter++;
-            });
+            })
+        ;
 
         expect($result)->toBeInstanceOf(EventEmitter::class);
 
@@ -176,6 +177,7 @@ describe('EventEmitter functionality', function () {
 
         $emitter->on('test', function () use (&$results) {
             $results[] = 'first';
+
             return false;
         });
 
@@ -223,7 +225,7 @@ describe('EventEmitter wildcard patterns', function () {
         expect($results)->toBe([
             'wildcard: create',
             'wildcard: update',
-            'wildcard: delete'
+            'wildcard: delete',
         ]);
     });
 
@@ -345,7 +347,7 @@ describe('EventEmitter introspection', function () {
         $emitter->on('product.deleted', function () {});
 
         $eventNames = $emitter->eventNames();
-        
+
         expect($eventNames)->toContain('user.created');
         expect($eventNames)->toContain('user.updated');
         expect($eventNames)->toContain('product.deleted');
@@ -354,7 +356,7 @@ describe('EventEmitter introspection', function () {
 
     it('returns listeners for a specific event', function () {
         $emitter = new EventEmitter();
-        
+
         $callback1 = function () { return 'first'; };
         $callback2 = function () { return 'second'; };
         $callback3 = function () { return 'third'; };
@@ -378,7 +380,7 @@ describe('EventEmitter introspection', function () {
 
     it('returns raw listeners with priority information', function () {
         $emitter = new EventEmitter();
-        
+
         $callback1 = function () {};
         $callback2 = function () {};
 
@@ -396,10 +398,10 @@ describe('EventEmitter introspection', function () {
 
     it('respects priority order in listeners method', function () {
         $emitter = new EventEmitter();
-        
-        $callback1 = fn() => 'low';
-        $callback2 = fn() => 'high';
-        $callback3 = fn() => 'medium';
+
+        $callback1 = fn () => 'low';
+        $callback2 = fn () => 'high';
+        $callback3 = fn () => 'medium';
 
         $emitter->on('test', $callback1, 0);
         $emitter->on('test', $callback2, 10);
@@ -407,14 +409,14 @@ describe('EventEmitter introspection', function () {
 
         $listeners = $emitter->listeners('test');
 
-        expect($listeners[0])->toBe($callback2); 
+        expect($listeners[0])->toBe($callback2);
         expect($listeners[1])->toBe($callback3);
-        expect($listeners[2])->toBe($callback1); 
+        expect($listeners[2])->toBe($callback1);
     });
 
     it('updates counts after removing listeners', function () {
         $emitter = new EventEmitter();
-        
+
         $callback = function () {};
 
         $emitter->on('test', $callback);

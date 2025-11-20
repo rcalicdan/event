@@ -14,7 +14,6 @@ describe('Basic Listener Discovery', function () {
     test('attribute listener is auto-registered', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -27,7 +26,6 @@ describe('Basic Listener Discovery', function () {
     test('multiple event attributes on same class work', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -45,7 +43,6 @@ describe('Basic Listener Discovery', function () {
     test('method-level attribute listeners are auto-registered', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -58,7 +55,6 @@ describe('Basic Listener Discovery', function () {
     test('multiple method-level attributes on same class work', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -81,7 +77,6 @@ describe('Basic Listener Discovery', function () {
     test('multiple attributes on same method work', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -99,7 +94,6 @@ describe('Basic Listener Discovery', function () {
     test('mixed class-level and method-level attributes work together', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -122,7 +116,6 @@ describe('Basic Listener Discovery', function () {
     test('method-level attributes with enum events work', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -145,7 +138,6 @@ describe('Basic Listener Discovery', function () {
     test('method-level attribute without class-level still works', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -158,7 +150,6 @@ describe('Basic Listener Discovery', function () {
     test('private and protected methods are ignored', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         expect(Event::hasListeners('private.event'))->toBeFalse();
@@ -169,7 +160,6 @@ describe('Basic Listener Discovery', function () {
     test('class with only method-level attributes does not instantiate unnecessarily', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         expect(true)->toBeTrue();
@@ -180,7 +170,6 @@ describe('Priority-based Listener Execution', function () {
     test('class-level listeners with priority execute in correct order', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -192,13 +181,13 @@ describe('Priority-based Listener Execution', function () {
         $lowPos = strpos($output, 'Low priority class');
 
         expect($highPos)->toBeLessThan($mediumPos)
-            ->and($mediumPos)->toBeLessThan($lowPos);
+            ->and($mediumPos)->toBeLessThan($lowPos)
+        ;
     });
 
     test('method-level listeners with priority execute in correct order', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -210,13 +199,13 @@ describe('Priority-based Listener Execution', function () {
         $lowPos = strpos($output, 'Low priority method');
 
         expect($highPos)->toBeLessThan($mediumPos)
-            ->and($mediumPos)->toBeLessThan($lowPos);
+            ->and($mediumPos)->toBeLessThan($lowPos)
+        ;
     });
 
     test('function listeners with priority execute in correct order', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -228,13 +217,13 @@ describe('Priority-based Listener Execution', function () {
         $lowPos = strpos($output, 'Low priority function');
 
         expect($highPos)->toBeLessThan($mediumPos)
-            ->and($mediumPos)->toBeLessThan($lowPos);
+            ->and($mediumPos)->toBeLessThan($lowPos)
+        ;
     });
 
     test('mixed listener types with priority execute in correct order', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -250,13 +239,13 @@ describe('Priority-based Listener Execution', function () {
         expect($class100Pos)->toBeLessThan($function90Pos)
             ->and($function90Pos)->toBeLessThan($method80Pos)
             ->and($method80Pos)->toBeLessThan($class50Pos)
-            ->and($class50Pos)->toBeLessThan($function10Pos);
+            ->and($class50Pos)->toBeLessThan($function10Pos)
+        ;
     });
 
     test('listeners with default priority (0) execute after positive priorities', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -268,13 +257,13 @@ describe('Priority-based Listener Execution', function () {
         $lowPos = strpos($output, 'Low priority');
 
         expect($highPos)->toBeLessThan($defaultPos)
-            ->and($defaultPos)->toBeLessThan($lowPos);
+            ->and($defaultPos)->toBeLessThan($lowPos)
+        ;
     });
 
     test('listeners with negative priority execute last', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -286,13 +275,13 @@ describe('Priority-based Listener Execution', function () {
         $negativePos = strpos($output, 'Negative priority');
 
         expect($positivePos)->toBeLessThan($zeroPos)
-            ->and($zeroPos)->toBeLessThan($negativePos);
+            ->and($zeroPos)->toBeLessThan($negativePos)
+        ;
     });
 
     test('multiple attributes with different priorities on same method work', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -301,13 +290,13 @@ describe('Priority-based Listener Execution', function () {
         $output = ob_get_clean();
 
         expect($output)->toContain('Multi-event handler for event1 (priority 100)')
-            ->and($output)->toContain('Multi-event handler for event2 (priority 50)');
+            ->and($output)->toContain('Multi-event handler for event2 (priority 50)')
+        ;
     });
 
     test('priority works with enum-based listeners', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -323,7 +312,6 @@ describe('Priority-based Listener Execution', function () {
     test('same priority listeners execute in registration order', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners',
-            namespace: 'Tests\\Fixtures\\Listeners'
         );
 
         ob_start();
@@ -332,7 +320,8 @@ describe('Priority-based Listener Execution', function () {
 
         expect($output)->toContain('First listener')
             ->and($output)->toContain('Second listener')
-            ->and($output)->toContain('Third listener');
+            ->and($output)->toContain('Third listener')
+        ;
     });
 });
 
@@ -340,7 +329,6 @@ describe('ListenOnce Functionality', function () {
     test('ListenOnce class-level listener fires only once per request', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners/Once',
-            namespace: 'Tests\\Fixtures\\Listeners\\Once'
         );
 
         ob_start();
@@ -355,7 +343,6 @@ describe('ListenOnce Functionality', function () {
     test('ListenOnce method-level listener fires only once per request', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners/Once',
-            namespace: 'Tests\\Fixtures\\Listeners\\Once'
         );
 
         ob_start();
@@ -370,7 +357,6 @@ describe('ListenOnce Functionality', function () {
     test('ListenOnce function listener fires only once per request', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners/Once',
-            namespace: 'Tests\\Fixtures\\Listeners\\Once'
         );
 
         ob_start();
@@ -385,7 +371,6 @@ describe('ListenOnce Functionality', function () {
     test('ListenOnce and ListenTo can coexist on same event', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners/Once',
-            namespace: 'Tests\\Fixtures\\Listeners\\Once'
         );
 
         ob_start();
@@ -400,7 +385,6 @@ describe('ListenOnce Functionality', function () {
     test('ListenOnce respects priority', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners/Once',
-            namespace: 'Tests\\Fixtures\\Listeners\\Once'
         );
 
         ob_start();
@@ -416,7 +400,6 @@ describe('ListenOnce Functionality', function () {
     test('ListenOnce with enum events works correctly', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners/Once',
-            namespace: 'Tests\\Fixtures\\Listeners\\Once'
         );
 
         ob_start();
@@ -430,7 +413,6 @@ describe('ListenOnce Functionality', function () {
     test('multiple ListenOnce attributes on same method work independently', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners/Once',
-            namespace: 'Tests\\Fixtures\\Listeners\\Once'
         );
 
         ob_start();
@@ -447,7 +429,6 @@ describe('ListenOnce Functionality', function () {
     test('ListenOnce listener is removed after execution', function () {
         ListenerDiscovery::discover(
             directory: __DIR__ . '/Fixtures/Listeners/Once',
-            namespace: 'Tests\\Fixtures\\Listeners\\Once'
         );
 
         $initialCount = Event::listenerCount('once.removal.test');
@@ -460,7 +441,8 @@ describe('ListenOnce Functionality', function () {
 
         expect($initialCount)->toBe(1)
             ->and($afterFirstEmit)->toBe(0)
-            ->and($afterSecondEmit)->toBe(0);
+            ->and($afterSecondEmit)->toBe(0)
+        ;
     });
 
     test('quick function-based ListenOnce test', function () {

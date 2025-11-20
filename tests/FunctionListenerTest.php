@@ -6,14 +6,12 @@ use Rcalicdan\Event\Event;
 use Rcalicdan\Event\ListenerDiscovery;
 use Tests\Fixtures\Events\PaymentEvents;
 
-
 beforeEach(function () {
     Event::reset();
     ListenerDiscovery::reset();
-    
+
     ListenerDiscovery::discover(
         __DIR__ . '/Fixtures/FunctionListeners',
-        'Tests\\Fixtures\\FunctionListeners',
         false
     );
 });
@@ -63,20 +61,21 @@ test('function listener has listeners check works', function () {
     expect(Event::hasListeners('function.simple'))->toBeTrue()
         ->and(Event::hasListeners('function.with-args'))->toBeTrue()
         ->and(Event::hasListeners('function.multi1'))->toBeTrue()
-        ->and(Event::hasListeners('function.multi2'))->toBeTrue();
+        ->and(Event::hasListeners('function.multi2'))->toBeTrue()
+    ;
 });
 
 test('mixed class and function listeners work together', function () {
+    Event::reset();
     ListenerDiscovery::reset();
+
     ListenerDiscovery::discover(
-        __DIR__ . '/Fixtures/Listeners',
-        'Tests\\Fixtures\\Listeners'
+        [
+            __DIR__ . '/Fixtures/Listeners',
+            __DIR__ . '/Fixtures/FunctionListeners',
+        ]
     );
-    ListenerDiscovery::discover(
-        __DIR__ . '/Fixtures/FunctionListeners',
-        'Tests\\Fixtures\\FunctionListeners'
-    );
-    
+
     ob_start();
     Event::emit('fixture.test');
     Event::emit('function.simple');
@@ -104,14 +103,11 @@ test('async-style function listener works', function () {
 });
 
 test('function is not registered twice on reset and rediscover', function () {
-    // This test already has discovery from beforeEach
-    // Manually reset and rediscover
     Event::reset();
     ListenerDiscovery::reset();
 
     ListenerDiscovery::discover(
         __DIR__ . '/Fixtures/FunctionListeners',
-        'Tests\\Fixtures\\FunctionListeners'
     );
 
     ob_start();
@@ -135,11 +131,11 @@ test('function listener with complex data works', function () {
 
 test('function listener can be removed', function () {
     expect(Event::hasListeners('function.simple'))->toBeTrue();
-    
+
     Event::removeAllListeners('function.simple');
-    
+
     expect(Event::hasListeners('function.simple'))->toBeFalse();
-    
+
     ob_start();
     Event::emit('function.simple');
     $output = ob_get_clean();
@@ -148,12 +144,12 @@ test('function listener can be removed', function () {
 });
 
 test('function listener error handling works', function () {
-    Event::on('error', function (\Throwable $e): void {
+    Event::on('error', function (Throwable $e): void {
         echo "Error caught: {$e->getMessage()}";
     });
 
     require_once __DIR__ . '/Fixtures/InvalidListeners/throwing_function.php';
-    
+
     Event::on('throwing.function', 'Tests\\Fixtures\\InvalidListeners\\throwingFunction');
 
     ob_start();
@@ -204,7 +200,8 @@ test('function listener receives correct number of arguments', function () {
     $output = ob_get_clean();
 
     expect($output)->toContain('Test')
-        ->and($output)->toContain('123');
+        ->and($output)->toContain('123')
+    ;
 });
 
 test('enum function listener with enum case', function () {

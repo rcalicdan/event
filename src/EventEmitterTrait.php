@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Rcalicdan\Event;
 
-use Rcalicdan\ConfigLoader\Exceptions\EnvFileNotFoundException;
-
 use function Rcalicdan\ConfigLoader\env;
+
+use Rcalicdan\ConfigLoader\Exceptions\EnvFileNotFoundException;
 
 trait EventEmitterTrait
 {
@@ -37,6 +37,7 @@ trait EventEmitterTrait
     public function setThrowOnListenerError(bool $throw): self
     {
         $this->throwOnListenerError = $throw;
+
         return $this;
     }
 
@@ -47,6 +48,7 @@ trait EventEmitterTrait
     public function setMaxListeners(int $max): self
     {
         $this->maxListeners = max(0, $max);
+
         return $this;
     }
 
@@ -105,6 +107,7 @@ trait EventEmitterTrait
         $wrapper = null;
         $wrapper = function (...$args) use ($event, $callback, &$wrapper) {
             $this->removeListener($event, $wrapper);
+
             return $callback(...$args);
         };
 
@@ -196,6 +199,7 @@ trait EventEmitterTrait
     public function hasListeners(string|\BackedEnum $event): bool
     {
         $eventName = $this->normalizeEvent($event);
+
         return isset($this->listeners[$eventName]) && $this->listeners[$eventName] !== [];
     }
 
@@ -231,10 +235,12 @@ trait EventEmitterTrait
             foreach ($this->listeners as $listeners) {
                 $count += count($listeners);
             }
+
             return $count;
         }
 
         $eventName = $this->normalizeEvent($event);
+
         return isset($this->listeners[$eventName]) ? count($this->listeners[$eventName]) : 0;
     }
 
@@ -258,14 +264,14 @@ trait EventEmitterTrait
     {
         $eventName = $this->normalizeEvent($event);
 
-        if (!isset($this->listeners[$eventName])) {
+        if (! isset($this->listeners[$eventName])) {
             return [];
         }
 
         $this->sortListeners($eventName);
 
         return array_values(array_map(
-            fn($listener) => $listener['callback'],
+            fn ($listener) => $listener['callback'],
             $this->listeners[$eventName]
         ));
     }
@@ -280,7 +286,7 @@ trait EventEmitterTrait
     {
         $eventName = $this->normalizeEvent($event);
 
-        if (!isset($this->listeners[$eventName])) {
+        if (! isset($this->listeners[$eventName])) {
             return [];
         }
 
@@ -302,7 +308,7 @@ trait EventEmitterTrait
      */
     private function sortListeners(string $eventName): void
     {
-        if (!isset($this->listeners[$eventName]) || ($this->sortedEvents[$eventName] ?? false)) {
+        if (! isset($this->listeners[$eventName]) || ($this->sortedEvents[$eventName] ?? false)) {
             return;
         }
 
@@ -346,7 +352,7 @@ trait EventEmitterTrait
         }
 
         $matchingListeners = array_merge($exactListeners, $wildcardListeners);
-        usort($matchingListeners, fn($a, $b) => $b['priority'] <=> $a['priority']);
+        usort($matchingListeners, fn ($a, $b) => $b['priority'] <=> $a['priority']);
 
         return $matchingListeners;
     }

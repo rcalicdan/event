@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use Rcalicdan\Event\EventEmitter;
 
 describe('EventEmitter Priority Support', function () {
@@ -235,7 +237,7 @@ describe('EventEmitter Priority Support', function () {
 
         expect($receivedArgs)->toBe([
             ['high', 'value1', 'value2'],
-            ['low', 'value1', 'value2']
+            ['low', 'value1', 'value2'],
         ]);
     });
 
@@ -264,7 +266,8 @@ describe('EventEmitter Priority Support', function () {
         $emitter->emit('event2');
 
         expect($event1Order)->toBe(['high', 'low'])
-            ->and($event2Order)->toBe(['medium', 'low']);
+            ->and($event2Order)->toBe(['medium', 'low'])
+        ;
     });
 
     it('handles removeAllListeners and maintains priority on re-registration', function () {
@@ -322,7 +325,8 @@ describe('EventEmitter Priority Support', function () {
 
         $emitter->on('test.event', function () use (&$executionOrder) {
             $executionOrder[] = 'error';
-            throw new \Exception('Test exception');
+
+            throw new Exception('Test exception');
         }, 50);
 
         $emitter->on('test.event', function () use (&$executionOrder) {
@@ -342,9 +346,10 @@ describe('EventEmitter Priority Support', function () {
         $emitter = new EventEmitter();
 
         $result = $emitter
-            ->on('event1', fn() => null, 100)
-            ->on('event2', fn() => null, 50)
-            ->once('event3', fn() => null, 25);
+            ->on('event1', fn () => null, 100)
+            ->on('event2', fn () => null, 50)
+            ->once('event3', fn () => null, 25)
+        ;
 
         expect($result)->toBeInstanceOf(EventEmitter::class);
     });
@@ -389,10 +394,10 @@ describe('EventEmitter Priority Support', function () {
 
         expect($emitter->hasListeners('test.event'))->toBeFalse();
 
-        $emitter->on('test.event', fn() => null, 100);
+        $emitter->on('test.event', fn () => null, 100);
         expect($emitter->hasListeners('test.event'))->toBeTrue();
 
-        $emitter->on('test.event', fn() => null, -100);
+        $emitter->on('test.event', fn () => null, -100);
         expect($emitter->hasListeners('test.event'))->toBeTrue();
     });
 

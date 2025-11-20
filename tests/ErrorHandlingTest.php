@@ -26,7 +26,8 @@ describe('error event handling', function () {
 
         expect($errorCaught)
             ->toBeInstanceOf(RuntimeException::class)
-            ->and($errorCaught->getMessage())->toBe('Test error');
+            ->and($errorCaught->getMessage())->toBe('Test error')
+        ;
     });
 
     it('continues executing remaining listeners after one throws', function () {
@@ -86,9 +87,9 @@ describe('error event handling', function () {
             throw new RuntimeException('Original error');
         });
 
-
-        expect(fn() => Event::emit('test.event'))
-            ->not->toThrow(Exception::class);
+        expect(fn () => Event::emit('test.event'))
+            ->not->toThrow(Exception::class)
+        ;
 
         // The error message was written to STDERR (which we see in output)
     })->note('Expected to see error output - this is the correct behavior');
@@ -124,29 +125,26 @@ describe('error event handling', function () {
 
 describe('listener discovery error handling', function () {
     it('throws exception when directory does not exist', function () {
-        expect(fn() => ListenerDiscovery::discover(
+        expect(fn () => ListenerDiscovery::discover(
             '/nonexistent/path',
-            'App\\Listeners'
         ))->toThrow(InvalidArgumentException::class, 'Directory not found');
     });
 
     it('throws exception when method does not exist on class-level listener', function () {
-        expect(fn() => ListenerDiscovery::discover(
+        expect(fn () => ListenerDiscovery::discover(
             __DIR__ . '/Fixtures/InvalidListeners',
-            'Tests\\Fixtures\\InvalidListeners'
         ))->toThrow(RuntimeException::class, 'does not exist');
     });
 
     it('skips classes that cannot be reflected', function () {
-        // Create a temporary file with invalid PHP
         $tempDir = sys_get_temp_dir() . '/event-test-' . uniqid();
         mkdir($tempDir);
         file_put_contents($tempDir . '/InvalidClass.php', '<?php invalid syntax');
 
-        expect(fn() => ListenerDiscovery::discover($tempDir, 'Temp'))
-            ->not->toThrow(Exception::class);
+        expect(fn () => ListenerDiscovery::discover($tempDir, 'Temp'))
+            ->not->toThrow(Exception::class)
+        ;
 
-        // Cleanup
         unlink($tempDir . '/InvalidClass.php');
         rmdir($tempDir);
     });
@@ -157,9 +155,9 @@ describe('listener discovery error handling', function () {
         file_put_contents($tempDir . '/readme.txt', 'Not a PHP file');
         file_put_contents($tempDir . '/config.json', '{}');
 
-        expect(fn() => ListenerDiscovery::discover($tempDir, 'Temp'))
-            ->not->toThrow(Exception::class);
-
+        expect(fn () => ListenerDiscovery::discover($tempDir, 'Temp'))
+            ->not->toThrow(Exception::class)
+        ;
 
         unlink($tempDir . '/readme.txt');
         unlink($tempDir . '/config.json');
@@ -176,8 +174,9 @@ describe('listener discovery error handling', function () {
         public function someMethod() {}
         }');
 
-        expect(fn() => ListenerDiscovery::discover($tempDir, 'Temp'))
-            ->not->toThrow(Exception::class);
+        expect(fn () => ListenerDiscovery::discover($tempDir, 'Temp'))
+            ->not->toThrow(Exception::class)
+        ;
 
         unlink($tempDir . '/RegularClass.php');
         rmdir($tempDir);
@@ -200,8 +199,9 @@ describe('enum error handling', function () {
 
 describe('callback error handling', function () {
     it('handles non-callable gracefully in on()', function () {
-        expect(fn() => Event::on('test', 'not_a_function'))
-            ->toThrow(TypeError::class);
+        expect(fn () => Event::on('test', 'not_a_function'))
+            ->toThrow(TypeError::class)
+        ;
     });
 
     it('handles listener that modifies event state during error', function () {
@@ -213,6 +213,7 @@ describe('callback error handling', function () {
 
         Event::on('test.event', function () use (&$executed) {
             $executed[] = 'listener 1';
+
             throw new RuntimeException('Error');
         });
 

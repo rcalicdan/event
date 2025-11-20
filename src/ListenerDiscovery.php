@@ -4,18 +4,19 @@ declare(strict_types=1);
 
 namespace Rcalicdan\Event;
 
-use Rcalicdan\Event\Attributes\ListenTo;
 use Rcalicdan\Event\Attributes\ListenOnce;
+use Rcalicdan\Event\Attributes\ListenTo;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use ReflectionClass;
-use ReflectionMethod;
 use ReflectionFunction;
+use ReflectionMethod;
 use SplFileInfo;
 
 class ListenerDiscovery
 {
-    private static bool $discovered = false;
+    /** @var array<string, bool> */
+    private static array $discoveredPaths = [];
 
     /** @var array<int, string> */
     private static array $registeredFunctions = [];
@@ -24,43 +25,63 @@ class ListenerDiscovery
     private static array $loadedFiles = [];
 
     /**
-     * Discover and register all listeners in a directory.
+     * Discover and register all listeners in one or more directories.
      *
-     * @param string $directory The directory to scan for listeners.
-     * @param string $namespace The namespace of the listeners.
+     * @param string|array<int, string> $directory The directory or directories to scan for listeners.
      * @param bool|null $failFast Optional. If true, exceptions will be thrown. If false, resilient mode. If null, uses env config.
      * @param string|null $cachePath Optional. The absolute path to a writable directory to store the cache file. If null, caching is disabled.
-     * @param bool $debugMode Optional. If true and caching is enabled, the cache is invalidated if listener files change. Set to false in production.
+     * @param bool $refreshCache Optional. If true and caching is enabled, the cache is invalidated if listener files change. Set to false in production.
      */
     public static function discover(
-        string $directory,
-        string $namespace,
+        string|array $directory,
         ?bool $failFast = null,
         ?string $cachePath = null,
-        bool $debugMode = false
+        bool $refreshCache = false
     ): void {
-        if (self::$discovered) {
-            return;
-        }
-
         if ($failFast !== null) {
             Event::setThrowOnListenerError($failFast);
         }
 
-        $cacheFile = self::prepareCacheFile($cachePath, $directory, $namespace);
+        $directories = is_array($directory) ? $directory : [$directory];
 
-        if (self::tryLoadFromCache($cacheFile, $directory, $debugMode)) {
-            self::$discovered = true;
+        foreach ($directories as $dir) {
+            self::discoverSingle($dir, $cachePath, $refreshCache);
+        }
+    }
+
+    /**
+     * Discover and register listeners in a single directory.
+     *
+     * @param string $directory
+     * @param string|null $cachePath
+     * @param bool $refreshCache
+     */
+    private static function discoverSingle(
+        string $directory,
+        ?string $cachePath,
+        bool $refreshCache
+    ): void {
+        $pathKey = md5($directory);
+
+        if (isset(self::$discoveredPaths[$pathKey])) {
+            return;
+        }
+
+        $cacheFile = self::prepareCacheFile($cachePath, $directory);
+
+        if (self::tryLoadFromCache($cacheFile, $directory, $refreshCache)) {
+            self::$discoveredPaths[$pathKey] = true;
+
             return;
         }
 
         $realDirectory = self::validateAndResolveDirectory($directory);
-        $discoveredData = self::scanAndDiscoverListeners($realDirectory, $namespace);
+        $discoveredData = self::scanAndDiscoverListeners($realDirectory);
 
         self::writeCacheIfEnabled($cacheFile, $discoveredData);
         self::registerListenersFromCache($discoveredData['listeners']);
 
-        self::$discovered = true;
+        self::$discoveredPaths[$pathKey] = true;
     }
 
     /**
@@ -68,25 +89,24 @@ class ListenerDiscovery
      *
      * @param string|null $cachePath
      * @param string $directory
-     * @param string $namespace
      * @return string|null The cache file path or null if caching is disabled
      * @throws \InvalidArgumentException
      */
-    private static function prepareCacheFile(?string $cachePath, string $directory, string $namespace): ?string
+    private static function prepareCacheFile(?string $cachePath, string $directory): ?string
     {
         if ($cachePath === null) {
             return null;
         }
 
-        if (!is_dir($cachePath)) {
+        if (! is_dir($cachePath)) {
             @mkdir($cachePath, 0775, true);
         }
 
-        if (!is_dir($cachePath) || !is_writable($cachePath)) {
+        if (! is_dir($cachePath) || ! is_writable($cachePath)) {
             throw new \InvalidArgumentException("Cache path is not a writable directory: {$cachePath}");
         }
 
-        return $cachePath . DIRECTORY_SEPARATOR . md5($directory . $namespace) . '-listeners.php';
+        return $cachePath . DIRECTORY_SEPARATOR . md5($directory) . '-listeners.php';
     }
 
     /**
@@ -94,29 +114,29 @@ class ListenerDiscovery
      *
      * @param string|null $cacheFile
      * @param string $directory
-     * @param bool $debugMode
+     * @param bool $refreshCache
      * @return bool True if cache was loaded successfully, false otherwise
      */
-    private static function tryLoadFromCache(?string $cacheFile, string $directory, bool $debugMode): bool
+    private static function tryLoadFromCache(?string $cacheFile, string $directory, bool $refreshCache): bool
     {
-        if ($cacheFile === null || !file_exists($cacheFile)) {
+        if ($cacheFile === null || ! file_exists($cacheFile)) {
             return false;
         }
 
         /** @var mixed $cacheData */
         $cacheData = require $cacheFile;
 
-        if (!is_array($cacheData)) {
+        if (! is_array($cacheData)) {
             return false;
         }
 
         /** @var array<string, mixed> $cacheData */
 
-        if (!isset($cacheData['listeners']) || !is_array($cacheData['listeners'])) {
+        if (! isset($cacheData['listeners']) || ! is_array($cacheData['listeners'])) {
             return false;
         }
 
-        if ($debugMode && !self::isCacheValid($cacheData, $directory)) {
+        if ($refreshCache && ! self::isCacheValid($cacheData, $directory)) {
             return false;
         }
 
@@ -136,11 +156,12 @@ class ListenerDiscovery
      */
     private static function isCacheValid(array $cacheData, string $directory): bool
     {
-        if (!isset($cacheData['mtime']) || !is_int($cacheData['mtime'])) {
+        if (! isset($cacheData['mtime']) || ! is_int($cacheData['mtime'])) {
             return false;
         }
 
         $lastModification = self::getLatestModificationTime($directory);
+
         return $lastModification <= $cacheData['mtime'];
     }
 
@@ -153,7 +174,7 @@ class ListenerDiscovery
      */
     private static function validateAndResolveDirectory(string $directory): string
     {
-        if (!is_dir($directory)) {
+        if (! is_dir($directory)) {
             throw new \InvalidArgumentException("Directory not found: {$directory}");
         }
 
@@ -169,10 +190,9 @@ class ListenerDiscovery
      * Scan directory and discover all listeners.
      *
      * @param string $realDirectory
-     * @param string $namespace
      * @return array{listeners: array<int, array<string, mixed>>, mtime: int}
      */
-    private static function scanAndDiscoverListeners(string $realDirectory, string $namespace): array
+    private static function scanAndDiscoverListeners(string $realDirectory): array
     {
         /** @var array<int, array<string, mixed>> $discoveredListeners */
         $discoveredListeners = [];
@@ -183,7 +203,7 @@ class ListenerDiscovery
         );
 
         foreach ($files as $file) {
-            if (!$file instanceof SplFileInfo || $file->getExtension() !== 'php') {
+            if (! $file instanceof SplFileInfo || $file->getExtension() !== 'php') {
                 continue;
             }
 
@@ -194,14 +214,14 @@ class ListenerDiscovery
 
             $latestMtime = max($latestMtime, $file->getMTime());
 
-            $className = self::buildClassName($realDirectory, $filePath, $namespace);
+            $className = self::detectClassNameFromFile($filePath);
 
-            if (self::fileContainsClass($filePath, $className)) {
+            if ($className !== null && self::fileContainsClass($filePath, $className)) {
                 if (class_exists($className, true)) {
                     self::registerClass($className, $discoveredListeners, $filePath);
                 }
             } else {
-                self::loadAndRegisterFunctions($filePath, $namespace, $discoveredListeners);
+                self::loadAndRegisterFunctions($filePath, $discoveredListeners);
             }
         }
 
@@ -212,20 +232,34 @@ class ListenerDiscovery
     }
 
     /**
-     * Build the fully qualified class name from file path.
+     * Detect class name from file by parsing namespace and class declarations.
      *
-     * @param string $realDirectory
      * @param string $filePath
-     * @param string $namespace
-     * @return string
+     * @return string|null
      */
-    private static function buildClassName(string $realDirectory, string $filePath, string $namespace): string
+    private static function detectClassNameFromFile(string $filePath): ?string
     {
-        $relativePath = str_replace($realDirectory, '', $filePath);
-        $relativePath = ltrim($relativePath, DIRECTORY_SEPARATOR);
-        $classPath = str_replace([DIRECTORY_SEPARATOR, '.php'], ['\\', ''], $relativePath);
+        $content = file_get_contents($filePath);
+        if ($content === false) {
+            return null;
+        }
 
-        return rtrim($namespace, '\\') . '\\' . $classPath;
+        $namespace = '';
+        $className = '';
+
+        if (preg_match('/^namespace\s+([^;]+);/m', $content, $matches) === 1) {
+            $namespace = $matches[1];
+        }
+
+        if (preg_match('/^(abstract\s+|final\s+)?class\s+(\w+)/m', $content, $matches) === 1) {
+            $className = $matches[2];
+        }
+
+        if ($className === '') {
+            return null;
+        }
+
+        return $namespace !== '' ? $namespace . '\\' . $className : $className;
     }
 
     /**
@@ -267,13 +301,16 @@ class ListenerDiscovery
     /**
      * @param array<int, array<string, mixed>> $discoveredListeners
      */
-    private static function loadAndRegisterFunctions(string $filePath, string $namespace, array &$discoveredListeners): void
+    /**
+     * @param array<int, array<string, mixed>> $discoveredListeners
+     */
+    private static function loadAndRegisterFunctions(string $filePath, array &$discoveredListeners): void
     {
         $isAlreadyLoaded = in_array($filePath, self::$loadedFiles, true);
 
         $functionsBefore = get_defined_functions()['user'];
 
-        if (!$isAlreadyLoaded) {
+        if (! $isAlreadyLoaded) {
             require_once $filePath;
             self::$loadedFiles[] = $filePath;
         }
@@ -281,8 +318,12 @@ class ListenerDiscovery
         $functionsAfter = get_defined_functions()['user'];
         $newFunctions = array_diff($functionsAfter, $functionsBefore);
 
-        if ($isAlreadyLoaded && count($newFunctions) === 0) {
-            $newFunctions = self::findFunctionsInNamespace($namespace);
+        if ($isAlreadyLoaded || count($newFunctions) === 0) {
+            $fileFunctions = self::findFunctionsInFile($filePath);
+
+            if (count($fileFunctions) > 0) {
+                $newFunctions = $fileFunctions;
+            }
         }
 
         foreach ($newFunctions as $functionName) {
@@ -293,22 +334,34 @@ class ListenerDiscovery
     }
 
     /**
+     * Find functions defined in a specific file.
+     *
+     * @param string $filePath
      * @return array<int, string>
      */
-    private static function findFunctionsInNamespace(string $namespace): array
+    private static function findFunctionsInFile(string $filePath): array
     {
-        $allFunctions = get_defined_functions()['user'];
-        $namespace = strtolower(rtrim($namespace, '\\') . '\\');
+        $content = file_get_contents($filePath);
+        if ($content === false) {
+            return [];
+        }
 
-        $matchingFunctions = [];
-        foreach ($allFunctions as $functionName) {
-            $lowerFunctionName = strtolower($functionName);
-            if (str_starts_with($lowerFunctionName, $namespace)) {
-                $matchingFunctions[] = $functionName;
+        $namespace = '';
+        if (preg_match('/^namespace\s+([^;]+);/m', $content, $matches) === 1) {
+            $namespace = $matches[1];
+        }
+
+        preg_match_all('/^function\s+(\w+)\s*\(/m', $content, $matches);
+        $functionNames = [];
+
+        foreach ($matches[1] as $functionName) {
+            $fullName = $namespace !== '' ? $namespace . '\\' . $functionName : $functionName;
+            if (function_exists($fullName)) {
+                $functionNames[] = $fullName;
             }
         }
 
-        return $matchingFunctions;
+        return $functionNames;
     }
 
     /**
@@ -417,7 +470,7 @@ class ListenerDiscovery
                 $listener = $attribute->newInstance();
                 $method = $listener->method;
 
-                if (!method_exists($instance, $method)) {
+                if (! method_exists($instance, $method)) {
                     throw new \RuntimeException("Method {$method} does not exist on {$reflection->getName()}");
                 }
 
@@ -451,7 +504,7 @@ class ListenerDiscovery
             $hasListenTo = $method->getAttributes(ListenTo::class) !== [];
             $hasListenOnce = $method->getAttributes(ListenOnce::class) !== [];
 
-            if (!$hasListenTo && !$hasListenOnce) {
+            if (! $hasListenTo && ! $hasListenOnce) {
                 continue;
             }
 
@@ -486,12 +539,12 @@ class ListenerDiscovery
         $includedFiles = [];
 
         foreach ($listeners as $listener) {
-            if (!is_array($listener)) {
+            if (! is_array($listener)) {
                 continue;
             }
 
             $file = $listener['file'] ?? null;
-            if (is_string($file) && !isset($includedFiles[$file])) {
+            if (is_string($file) && ! isset($includedFiles[$file])) {
                 require_once $file;
                 $includedFiles[$file] = true;
             }
@@ -505,11 +558,11 @@ class ListenerDiscovery
                 continue;
             }
 
-            if (!is_int($priority)) {
+            if (! is_int($priority)) {
                 continue;
             }
 
-            if (!is_string($event) && !$event instanceof \BackedEnum) {
+            if (! is_string($event) && ! $event instanceof \BackedEnum) {
                 continue;
             }
 
@@ -517,7 +570,7 @@ class ListenerDiscovery
                 $callable = [new $callable[0](), $callable[1]];
             }
 
-            if (!is_callable($callable)) {
+            if (! is_callable($callable)) {
                 continue;
             }
 
@@ -541,12 +594,14 @@ class ListenerDiscovery
                 $latestMtime = max($latestMtime, $file->getMTime());
             }
         }
+
         return $latestMtime;
     }
 
     public static function reset(): void
     {
-        self::$discovered = false;
+        self::$discoveredPaths = [];
         self::$registeredFunctions = [];
+        self::$loadedFiles = [];
     }
 }

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Fixtures\Events;
 
-enum PaymentEvents: string 
+enum PaymentEvents: string
 {
     case PROCESSING = 'payment.processing';
     case SUCCESS = 'payment.success';
