@@ -47,39 +47,112 @@ class ListenerDiscovery
             Event::setThrowOnListenerError($failFast);
         }
 
-        $cacheFile = null;
-        if ($cachePath !== null) {
-            if (!is_dir($cachePath)) {
-                @mkdir($cachePath, 0775, true);
-            }
+        $cacheFile = self::prepareCacheFile($cachePath, $directory, $namespace);
 
-            if (!is_dir($cachePath) || !is_writable($cachePath)) {
-                throw new \InvalidArgumentException("Cache path is not a writable directory: {$cachePath}");
-            }
-
-            $cacheFile = $cachePath . DIRECTORY_SEPARATOR . md5($directory . $namespace) . '-listeners.php';
-
-            if (file_exists($cacheFile)) {
-                $cacheData = require $cacheFile;
-
-                $isCacheValid = true;
-                if ($debugMode && is_array($cacheData)) {
-                    $lastModification = self::getLatestModificationTime($directory);
-                    if (!isset($cacheData['mtime']) || !is_int($cacheData['mtime']) || $lastModification > $cacheData['mtime']) {
-                        $isCacheValid = false;
-                    }
-                }
-
-                if ($isCacheValid && is_array($cacheData) && isset($cacheData['listeners']) && is_array($cacheData['listeners'])) {
-                    /** @var array<int, array<string, mixed>> $listeners */
-                    $listeners = $cacheData['listeners'];
-                    self::registerListenersFromCache($listeners);
-                    self::$discovered = true;
-                    return;
-                }
-            }
+        if (self::tryLoadFromCache($cacheFile, $directory, $debugMode)) {
+            self::$discovered = true;
+            return;
         }
 
+        $realDirectory = self::validateAndResolveDirectory($directory);
+        $discoveredData = self::scanAndDiscoverListeners($realDirectory, $namespace);
+
+        self::writeCacheIfEnabled($cacheFile, $discoveredData);
+        self::registerListenersFromCache($discoveredData['listeners']);
+
+        self::$discovered = true;
+    }
+
+    /**
+     * Prepare the cache file path if caching is enabled.
+     *
+     * @param string|null $cachePath
+     * @param string $directory
+     * @param string $namespace
+     * @return string|null The cache file path or null if caching is disabled
+     * @throws \InvalidArgumentException
+     */
+    private static function prepareCacheFile(?string $cachePath, string $directory, string $namespace): ?string
+    {
+        if ($cachePath === null) {
+            return null;
+        }
+
+        if (!is_dir($cachePath)) {
+            @mkdir($cachePath, 0775, true);
+        }
+
+        if (!is_dir($cachePath) || !is_writable($cachePath)) {
+            throw new \InvalidArgumentException("Cache path is not a writable directory: {$cachePath}");
+        }
+
+        return $cachePath . DIRECTORY_SEPARATOR . md5($directory . $namespace) . '-listeners.php';
+    }
+
+    /**
+     * Try to load listeners from cache.
+     *
+     * @param string|null $cacheFile
+     * @param string $directory
+     * @param bool $debugMode
+     * @return bool True if cache was loaded successfully, false otherwise
+     */
+    private static function tryLoadFromCache(?string $cacheFile, string $directory, bool $debugMode): bool
+    {
+        if ($cacheFile === null || !file_exists($cacheFile)) {
+            return false;
+        }
+
+        /** @var mixed $cacheData */
+        $cacheData = require $cacheFile;
+
+        if (!is_array($cacheData)) {
+            return false;
+        }
+
+        /** @var array<string, mixed> $cacheData */
+
+        if (!isset($cacheData['listeners']) || !is_array($cacheData['listeners'])) {
+            return false;
+        }
+
+        if ($debugMode && !self::isCacheValid($cacheData, $directory)) {
+            return false;
+        }
+
+        /** @var array<int, array<string, mixed>> $listeners */
+        $listeners = $cacheData['listeners'];
+        self::registerListenersFromCache($listeners);
+
+        return true;
+    }
+
+    /**
+     * Check if cache is still valid by comparing modification times.
+     *
+     * @param array<string, mixed> $cacheData
+     * @param string $directory
+     * @return bool
+     */
+    private static function isCacheValid(array $cacheData, string $directory): bool
+    {
+        if (!isset($cacheData['mtime']) || !is_int($cacheData['mtime'])) {
+            return false;
+        }
+
+        $lastModification = self::getLatestModificationTime($directory);
+        return $lastModification <= $cacheData['mtime'];
+    }
+
+    /**
+     * Validate and resolve the directory path.
+     *
+     * @param string $directory
+     * @return string The resolved real path
+     * @throws \InvalidArgumentException
+     */
+    private static function validateAndResolveDirectory(string $directory): string
+    {
         if (!is_dir($directory)) {
             throw new \InvalidArgumentException("Directory not found: {$directory}");
         }
@@ -89,6 +162,19 @@ class ListenerDiscovery
             throw new \InvalidArgumentException("Cannot resolve real path for directory: {$directory}");
         }
 
+        return $realDirectory;
+    }
+
+    /**
+     * Scan directory and discover all listeners.
+     *
+     * @param string $realDirectory
+     * @param string $namespace
+     * @return array{listeners: array<int, array<string, mixed>>, mtime: int}
+     */
+    private static function scanAndDiscoverListeners(string $realDirectory, string $namespace): array
+    {
+        /** @var array<int, array<string, mixed>> $discoveredListeners */
         $discoveredListeners = [];
         $latestMtime = 0;
 
@@ -108,10 +194,7 @@ class ListenerDiscovery
 
             $latestMtime = max($latestMtime, $file->getMTime());
 
-            $relativePath = str_replace($realDirectory, '', $filePath);
-            $relativePath = ltrim($relativePath, DIRECTORY_SEPARATOR);
-            $classPath = str_replace([DIRECTORY_SEPARATOR, '.php'], ['\\', ''], $relativePath);
-            $className = rtrim($namespace, '\\') . '\\' . $classPath;
+            $className = self::buildClassName($realDirectory, $filePath, $namespace);
 
             if (self::fileContainsClass($filePath, $className)) {
                 if (class_exists($className, true)) {
@@ -122,21 +205,47 @@ class ListenerDiscovery
             }
         }
 
-        if ($cacheFile !== null) {
-            $exported = var_export([
-                'mtime' => $latestMtime,
-                'listeners' => $discoveredListeners,
-            ], true);
+        return [
+            'listeners' => $discoveredListeners,
+            'mtime' => $latestMtime,
+        ];
+    }
 
-            $exported = str_replace(['array (', ')', '  '], ['[', ']', '  '], $exported);
-            $cacheContent = "<?php\n\nreturn " . $exported . ";\n";
+    /**
+     * Build the fully qualified class name from file path.
+     *
+     * @param string $realDirectory
+     * @param string $filePath
+     * @param string $namespace
+     * @return string
+     */
+    private static function buildClassName(string $realDirectory, string $filePath, string $namespace): string
+    {
+        $relativePath = str_replace($realDirectory, '', $filePath);
+        $relativePath = ltrim($relativePath, DIRECTORY_SEPARATOR);
+        $classPath = str_replace([DIRECTORY_SEPARATOR, '.php'], ['\\', ''], $relativePath);
 
-            file_put_contents($cacheFile, $cacheContent, LOCK_EX);
+        return rtrim($namespace, '\\') . '\\' . $classPath;
+    }
+
+    /**
+     * Write discovered listeners to cache file if enabled.
+     *
+     * @param string|null $cacheFile
+     * @param array{listeners: array<int, array<string, mixed>>, mtime: int} $discoveredData
+     * @return void
+     */
+    private static function writeCacheIfEnabled(?string $cacheFile, array $discoveredData): void
+    {
+        if ($cacheFile === null) {
+            return;
         }
 
-        self::registerListenersFromCache($discoveredListeners);
+        $exported = var_export($discoveredData, true);
+        $exported = str_replace(['array (', ')'], ['[', ']'], $exported);
+        $cacheContent = "<?php\n\nreturn " . $exported . ";\n";
 
-        self::$discovered = true;
+        file_put_contents($cacheFile, $cacheContent, LOCK_EX);
     }
 
     private static function fileContainsClass(string $filePath, string $expectedClassName): bool
@@ -203,6 +312,29 @@ class ListenerDiscovery
     }
 
     /**
+     * Helper to add a listener to the discovered list.
+     *
+     * @param array<int, array<string, mixed>> $discoveredListeners
+     * @param ListenTo|ListenOnce $listener
+     * @param string|array<int, string> $callable
+     */
+    private static function addDiscoveredListener(
+        array &$discoveredListeners,
+        object $listener,
+        string|array $callable,
+        string $filePath,
+        bool $once
+    ): void {
+        $discoveredListeners[] = [
+            'event' => $listener->event instanceof \BackedEnum ? $listener->event->value : $listener->event,
+            'callable' => $callable,
+            'priority' => $listener->priority,
+            'once' => $once,
+            'file' => $filePath,
+        ];
+    }
+
+    /**
      * @param array<int, array<string, mixed>> $discoveredListeners
      */
     private static function registerFunction(string $functionName, array &$discoveredListeners, string $filePath): void
@@ -213,41 +345,32 @@ class ListenerDiscovery
 
         try {
             $reflection = new ReflectionFunction($functionName);
-            
-            // Check for ListenTo attributes
-            $listenToAttributes = $reflection->getAttributes(ListenTo::class);
-            foreach ($listenToAttributes as $attribute) {
-                /** @var ListenTo $listener */
-                $listener = $attribute->newInstance();
+            $hasAttributes = false;
 
-                if (function_exists($functionName)) {
-                    $discoveredListeners[] = [
-                        'event' => $listener->event instanceof \BackedEnum ? $listener->event->value : $listener->event,
-                        'callable' => $functionName,
-                        'priority' => $listener->priority,
-                        'once' => false,
-                        'file' => $filePath,
-                    ];
+            $attributeTypes = [
+                ListenTo::class => false,
+                ListenOnce::class => true,
+            ];
+
+            foreach ($attributeTypes as $attributeClass => $isOnce) {
+                foreach ($reflection->getAttributes($attributeClass) as $attribute) {
+                    /** @var ListenTo|ListenOnce $listener */
+                    $listener = $attribute->newInstance();
+
+                    if (function_exists($functionName)) {
+                        self::addDiscoveredListener(
+                            $discoveredListeners,
+                            $listener,
+                            $functionName,
+                            $filePath,
+                            $isOnce
+                        );
+                        $hasAttributes = true;
+                    }
                 }
             }
-            
-            $listenOnceAttributes = $reflection->getAttributes(ListenOnce::class);
-            foreach ($listenOnceAttributes as $attribute) {
-                /** @var ListenOnce $listener */
-                $listener = $attribute->newInstance();
 
-                if (function_exists($functionName)) {
-                    $discoveredListeners[] = [
-                        'event' => $listener->event instanceof \BackedEnum ? $listener->event->value : $listener->event,
-                        'callable' => $functionName,
-                        'priority' => $listener->priority,
-                        'once' => true,
-                        'file' => $filePath,
-                    ];
-                }
-            }
-            
-            if ($listenToAttributes !== [] || $listenOnceAttributes !== []) {
+            if ($hasAttributes) {
                 self::$registeredFunctions[] = $functionName;
             }
         } catch (\Throwable) {
@@ -274,52 +397,39 @@ class ListenerDiscovery
      */
     private static function registerClassListeners(ReflectionClass $reflection, array &$discoveredListeners, string $filePath): void
     {
-        $listenToAttributes = $reflection->getAttributes(ListenTo::class);
-        $listenOnceAttributes = $reflection->getAttributes(ListenOnce::class);
-        
-        if ($listenToAttributes === [] && $listenOnceAttributes === []) {
+        if (
+            $reflection->getAttributes(ListenTo::class) === [] &&
+            $reflection->getAttributes(ListenOnce::class) === []
+        ) {
             return;
         }
 
         $instance = $reflection->newInstance();
-        
-        foreach ($listenToAttributes as $attribute) {
-            /** @var ListenTo $listener */
-            $listener = $attribute->newInstance();
-            $method = $listener->method;
 
-            if (!method_exists($instance, $method)) {
-                throw new \RuntimeException("Method {$method} does not exist on {$reflection->getName()}");
-            }
+        $attributeTypes = [
+            ListenTo::class => false,
+            ListenOnce::class => true,
+        ];
 
-            if (is_callable([$instance, $method])) {
-                $discoveredListeners[] = [
-                    'event' => $listener->event instanceof \BackedEnum ? $listener->event->value : $listener->event,
-                    'callable' => [$reflection->getName(), $method],
-                    'priority' => $listener->priority,
-                    'once' => false,
-                    'file' => $filePath,
-                ];
-            }
-        }
-        
-        foreach ($listenOnceAttributes as $attribute) {
-            /** @var ListenOnce $listener */
-            $listener = $attribute->newInstance();
-            $method = $listener->method;
+        foreach ($attributeTypes as $attributeClass => $isOnce) {
+            foreach ($reflection->getAttributes($attributeClass) as $attribute) {
+                /** @var ListenTo|ListenOnce $listener */
+                $listener = $attribute->newInstance();
+                $method = $listener->method;
 
-            if (!method_exists($instance, $method)) {
-                throw new \RuntimeException("Method {$method} does not exist on {$reflection->getName()}");
-            }
+                if (!method_exists($instance, $method)) {
+                    throw new \RuntimeException("Method {$method} does not exist on {$reflection->getName()}");
+                }
 
-            if (is_callable([$instance, $method])) {
-                $discoveredListeners[] = [
-                    'event' => $listener->event instanceof \BackedEnum ? $listener->event->value : $listener->event,
-                    'callable' => [$reflection->getName(), $method],
-                    'priority' => $listener->priority,
-                    'once' => true,
-                    'file' => $filePath,
-                ];
+                if (is_callable([$instance, $method])) {
+                    self::addDiscoveredListener(
+                        $discoveredListeners,
+                        $listener,
+                        [$reflection->getName(), $method],
+                        $filePath,
+                        $isOnce
+                    );
+                }
             }
         }
     }
@@ -331,11 +441,17 @@ class ListenerDiscovery
     private static function registerMethodListeners(ReflectionClass $reflection, array &$discoveredListeners, string $filePath): void
     {
         $instance = null;
+
+        $attributeTypes = [
+            ListenTo::class => false,
+            ListenOnce::class => true,
+        ];
+
         foreach ($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-            $listenToAttributes = $method->getAttributes(ListenTo::class);
-            $listenOnceAttributes = $method->getAttributes(ListenOnce::class);
-            
-            if ($listenToAttributes === [] && $listenOnceAttributes === []) {
+            $hasListenTo = $method->getAttributes(ListenTo::class) !== [];
+            $hasListenOnce = $method->getAttributes(ListenOnce::class) !== [];
+
+            if (!$hasListenTo && !$hasListenOnce) {
                 continue;
             }
 
@@ -343,33 +459,20 @@ class ListenerDiscovery
                 $instance = $reflection->newInstance();
             }
 
-            foreach ($listenToAttributes as $attribute) {
-                /** @var ListenTo $listener */
-                $listener = $attribute->newInstance();
+            foreach ($attributeTypes as $attributeClass => $isOnce) {
+                foreach ($method->getAttributes($attributeClass) as $attribute) {
+                    /** @var ListenTo|ListenOnce $listener */
+                    $listener = $attribute->newInstance();
 
-                if (is_callable([$instance, $method->getName()])) {
-                    $discoveredListeners[] = [
-                        'event' => $listener->event instanceof \BackedEnum ? $listener->event->value : $listener->event,
-                        'callable' => [$reflection->getName(), $method->getName()],
-                        'priority' => $listener->priority,
-                        'once' => false,
-                        'file' => $filePath,
-                    ];
-                }
-            }
-            
-            foreach ($listenOnceAttributes as $attribute) {
-                /** @var ListenOnce $listener */
-                $listener = $attribute->newInstance();
-
-                if (is_callable([$instance, $method->getName()])) {
-                    $discoveredListeners[] = [
-                        'event' => $listener->event instanceof \BackedEnum ? $listener->event->value : $listener->event,
-                        'callable' => [$reflection->getName(), $method->getName()],
-                        'priority' => $listener->priority,
-                        'once' => true,
-                        'file' => $filePath,
-                    ];
+                    if (is_callable([$instance, $method->getName()])) {
+                        self::addDiscoveredListener(
+                            $discoveredListeners,
+                            $listener,
+                            [$reflection->getName(), $method->getName()],
+                            $filePath,
+                            $isOnce
+                        );
+                    }
                 }
             }
         }
@@ -418,7 +521,6 @@ class ListenerDiscovery
                 continue;
             }
 
-            // Use Event::once() for one-time listeners, Event::on() for regular listeners
             if ($once === true) {
                 Event::once($event, $callable, $priority);
             } else {
