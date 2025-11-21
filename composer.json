@@ -10,21 +10,22 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests/"
+            "Tests\\": "tests/",
+            "Listeners\\": "listeners/"
         }
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
         "php": "^8.2",
-        "rcalicdan/config-loader": "^1.0",
-        "hiblaphp/async":"dev-main"
+        "rcalicdan/config-loader": "^1.0"
     },
     "require-dev": {
         "laravel/pint": "^1.10",
         "pestphp/pest": "^3.0",
         "phpstan/phpstan": "^2.1",
-        "phpstan/phpstan-strict-rules": "^2.0"
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "php-di/php-di": "^7.1"
     },
     "scripts": {
         "test": "./vendor/bin/pest",

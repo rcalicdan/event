@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Rcalicdan\Event;
 
+use Psr\Container\ContainerInterface;
 use Rcalicdan\Event\Attributes\ListenOnce;
 use Rcalicdan\Event\Attributes\ListenTo;
 use RecursiveDirectoryIterator;
@@ -24,6 +25,9 @@ class ListenerDiscovery
     /** @var array<int, string> */
     private static array $loadedFiles = [];
 
+    /** @var ContainerInterface|null */
+    private static ?ContainerInterface $container = null;
+
     /**
      * Discover and register all listeners in one or more directories.
      *
@@ -31,16 +35,20 @@ class ListenerDiscovery
      * @param bool|null $failFast Optional. If true, exceptions will be thrown. If false, resilient mode. If null, uses env config.
      * @param string|null $cachePath Optional. The absolute path to a writable directory to store the cache file. If null, caching is disabled.
      * @param bool $refreshCache Optional. If true and caching is enabled, the cache is invalidated if listener files change. Set to false in production.
+     * @param ContainerInterface|null $container Optional. PSR-11 container for dependency injection. If null, classes are instantiated directly.
      */
     public static function discover(
         string|array $directory,
         ?bool $failFast = null,
         ?string $cachePath = null,
-        bool $refreshCache = false
+        bool $refreshCache = false,
+        ?ContainerInterface $container = null
     ): void {
         if ($failFast !== null) {
             Event::setThrowOnListenerError($failFast);
         }
+
+        self::$container = $container;
 
         $directories = is_array($directory) ? $directory : [$directory];
 
@@ -301,9 +309,6 @@ class ListenerDiscovery
     /**
      * @param array<int, array<string, mixed>> $discoveredListeners
      */
-    /**
-     * @param array<int, array<string, mixed>> $discoveredListeners
-     */
     private static function loadAndRegisterFunctions(string $filePath, array &$discoveredListeners): void
     {
         $isAlreadyLoaded = in_array($filePath, self::$loadedFiles, true);
@@ -431,6 +436,21 @@ class ListenerDiscovery
     }
 
     /**
+     * Resolve a class instance using the container if available, or create a new instance.
+     *
+     * @param class-string $className
+     * @return object
+     */
+    private static function resolveInstance(string $className): object
+    {
+        if (self::$container !== null && self::$container->has($className)) {
+            return self::$container->get($className);
+        }
+
+        return new $className();
+    }
+
+    /**
      * @param class-string $className
      * @param array<int, array<string, mixed>> $discoveredListeners
      */
@@ -457,7 +477,7 @@ class ListenerDiscovery
             return;
         }
 
-        $instance = $reflection->newInstance();
+        $instance = self::resolveInstance($reflection->getName());
 
         $attributeTypes = [
             ListenTo::class => false,
@@ -509,7 +529,7 @@ class ListenerDiscovery
             }
 
             if ($instance === null) {
-                $instance = $reflection->newInstance();
+                $instance = self::resolveInstance($reflection->getName());
             }
 
             foreach ($attributeTypes as $attributeClass => $isOnce) {
@@ -566,8 +586,10 @@ class ListenerDiscovery
                 continue;
             }
 
+            // Resolve class instances using container if available
             if (is_array($callable) && is_string($callable[0] ?? null) && class_exists($callable[0])) {
-                $callable = [new $callable[0](), $callable[1]];
+                $instance = self::resolveInstance($callable[0]);
+                $callable = [$instance, $callable[1]];
             }
 
             if (! is_callable($callable)) {
@@ -603,5 +625,6 @@ class ListenerDiscovery
         self::$discoveredPaths = [];
         self::$registeredFunctions = [];
         self::$loadedFiles = [];
+        self::$container = null;
     }
 }
