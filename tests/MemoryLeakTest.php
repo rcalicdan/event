@@ -39,7 +39,7 @@ test('static stream emitting does not leak memory', function () {
 
     $growth = getMemoryGrowth(function () {
         Event::emit('stream', 'payload data', 123);
-    }, 100_000); 
+    }, 100_000);
 
     expect($growth)->toNotLeakMemory();
 });
@@ -65,7 +65,8 @@ test('once listeners self-destruct without leaking memory', function () {
 });
 
 test('enum events do not leak memory', function () {
-    enum MemoryTestEvents: string {
+    enum MemoryTestEvents: string
+    {
         case TEST = 'test';
     }
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Rcalicdan\Event;
 
-class Event
+final class Event
 {
     private static ?EventEmitterInterface $instance = null;
 

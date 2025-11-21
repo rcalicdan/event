@@ -14,14 +14,18 @@ $scanDir = __DIR__ . '/Fixtures/Classes/Psr11';
 beforeEach(function () use ($cacheDir) {
     Event::reset();
     ListenerDiscovery::reset();
-    if (!is_dir($cacheDir)) mkdir($cacheDir);
+    if (! is_dir($cacheDir)) {
+        mkdir($cacheDir);
+    }
 });
 
 afterEach(function () use ($cacheDir) {
     Event::reset();
     ListenerDiscovery::reset();
     array_map('unlink', glob("$cacheDir/*.*"));
-    if (is_dir($cacheDir)) rmdir($cacheDir);
+    if (is_dir($cacheDir)) {
+        rmdir($cacheDir);
+    }
 });
 
 test('listeners are resolved via real PHP-DI container', function () use ($cacheDir, $scanDir) {
@@ -56,11 +60,11 @@ test('container resolution works even from cached discovery', function () use ($
         refreshCache: true,
         container: $container
     );
-    
+
     // Reset State (Simulate new request)
     Event::reset();
     ListenerDiscovery::reset();
-    
+
     // 3. Phase 2: Load from Cache (Hot Boot)
     ListenerDiscovery::discover(
         directory: $scanDir,

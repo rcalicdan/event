@@ -444,7 +444,12 @@ class ListenerDiscovery
     private static function resolveInstance(string $className): object
     {
         if (self::$container !== null && self::$container->has($className)) {
-            return self::$container->get($className);
+            /** @var mixed $instance */
+            $instance = self::$container->get($className);
+
+            if (\is_object($instance)) {
+                return $instance;
+            }
         }
 
         return new $className();
@@ -559,12 +564,12 @@ class ListenerDiscovery
         $includedFiles = [];
 
         foreach ($listeners as $listener) {
-            if (! is_array($listener)) {
+            if (! \is_array($listener)) {
                 continue;
             }
 
             $file = $listener['file'] ?? null;
-            if (is_string($file) && ! isset($includedFiles[$file])) {
+            if (\is_string($file) && ! isset($includedFiles[$file])) {
                 require_once $file;
                 $includedFiles[$file] = true;
             }
@@ -578,16 +583,16 @@ class ListenerDiscovery
                 continue;
             }
 
-            if (! is_int($priority)) {
+            if (! \is_int($priority)) {
                 continue;
             }
 
-            if (! is_string($event) && ! $event instanceof \BackedEnum) {
+            if (! \is_string($event) && ! $event instanceof \BackedEnum) {
                 continue;
             }
 
             // Resolve class instances using container if available
-            if (is_array($callable) && is_string($callable[0] ?? null) && class_exists($callable[0])) {
+            if (\is_array($callable) && is_string($callable[0] ?? null) && class_exists($callable[0])) {
                 $instance = self::resolveInstance($callable[0]);
                 $callable = [$instance, $callable[1]];
             }

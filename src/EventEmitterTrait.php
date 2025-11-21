@@ -237,7 +237,7 @@ trait EventEmitterTrait
         if ($event === null) {
             $count = 0;
             foreach ($this->listeners as $listeners) {
-                $count += count($listeners);
+                $count += \count($listeners);
             }
 
             return $count;
@@ -275,7 +275,7 @@ trait EventEmitterTrait
         $this->sortListeners($eventName);
 
         return array_values(array_map(
-            fn($listener) => $listener['callback'],
+            fn ($listener) => $listener['callback'],
             $this->listeners[$eventName]
         ));
     }
@@ -356,7 +356,7 @@ trait EventEmitterTrait
         }
 
         $matchingListeners = array_merge($exactListeners, $wildcardListeners);
-        usort($matchingListeners, fn($a, $b) => $b['priority'] <=> $a['priority']);
+        usort($matchingListeners, fn ($a, $b) => $b['priority'] <=> $a['priority']);
 
         return $matchingListeners;
     }
@@ -412,12 +412,12 @@ trait EventEmitterTrait
             return;
         }
 
-        $count = count($this->listeners[$eventName] ?? []) + count($this->wildcardListeners[$eventName] ?? []);
+        $count = \count($this->listeners[$eventName] ?? []) + count($this->wildcardListeners[$eventName] ?? []);
 
         if ($count > $this->maxListeners) {
             $this->maxListenersWarned[$eventName] = true;
 
-            $message = sprintf(
+            $message = \sprintf(
                 'Possible EventEmitter memory leak detected. %d listeners added for event "%s". ' .
                     'Use setMaxListeners() to increase limit or set to 0 to disable this warning.',
                 $count,
