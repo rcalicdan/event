@@ -196,7 +196,7 @@ composer require rcalicdan/event
 
 The library offers multiple ways to work with events, each suited for different architectural needs:
 
-#### 1. Attribute-Based Listener Discovery ⭐ RECOMMENDED
+#### 1. Attribute-Based Listener Discovery (RECOMMENDED)
 
 **This is the primary and recommended way to build your event bus.** Annotate your listener classes, methods, and functions with attributes, then run discovery once during bootstrap. The library automatically scans, registers, and caches all listeners—no manual wiring required.
 
@@ -504,7 +504,7 @@ Event::emit(OrderEvents::Placed, new OrderDTO(...));
 
 ## Features at a Glance
 
-- **Attribute-Based Discovery** ⭐ - Automatic listener registration with zero boilerplate
+- **Attribute-Based Discovery** - Automatic listener registration with zero boilerplate
 - **Production Caching** - Parse attributes once, load instantly from cache
 - **Zero Dependencies** - No required external packages
 - **Framework Agnostic** - Works anywhere PHP runs
