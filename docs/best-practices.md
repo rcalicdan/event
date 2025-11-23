@@ -1,4 +1,3 @@
-```markdown
 # Best Practices
 
 Patterns, anti-patterns, and architectural guidance for building maintainable event-driven systems.
@@ -28,8 +27,6 @@ Patterns, anti-patterns, and architectural guidance for building maintainable ev
   - [Testing with Datasets](#testing-with-datasets)
 - [Common Anti-Patterns](#common-anti-patterns)
 - [Production Checklist](#production-checklist)
-
----
 
 ## Event Design
 
@@ -1369,48 +1366,5 @@ class ProcessPayment
     }
 }
 ```
-
----
-
-## Production Checklist
-
-### Configuration
-
-- [ ] Resilient mode enabled (`Event::resilient()`)
-- [ ] Error event handler registered
-- [ ] Max listeners set appropriately (`Event::setMaxListeners(100)`)
-- [ ] Discovery caching enabled
-- [ ] Cache refresh disabled in production
-
-### Code Quality
-
-- [ ] All event payloads if necessary use immutable DTOs (readonly classes)
-- [ ] Event names follow naming conventions
-- [ ] Listeners have single responsibility
-- [ ] Listeners are idempotent
-- [ ] Error handling in all listeners
-
-### Performance
-
-- [ ] Expensive operations queued for async processing
-- [ ] Wildcard listeners minimized
-- [ ] hasListeners() checks before expensive operations
-- [ ] Priorities used appropriately
-
-### Monitoring
-
-- [ ] Error events logged
-- [ ] Error events sent to tracking service (Sentry, etc.)
-- [ ] Event metrics collected
-- [ ] Memory usage monitored for long-running processes
-
-### Testing
-
-- [ ] Unit tests for all listeners
-- [ ] Integration tests for event flows
-- [ ] Error scenarios tested
-- [ ] Performance tested under load
-
----
 
 [← Back to Main Documentation](../README.md) | [Previous: API Reference](api-reference.md) | [Next: Examples →](examples.md)
