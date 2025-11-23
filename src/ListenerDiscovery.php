@@ -36,21 +36,27 @@ class ListenerDiscovery
      * @param string|null $cachePath Optional. The absolute path to a writable directory to store the cache file. If null, caching is disabled.
      * @param bool $refreshCache Optional. If true and caching is enabled, the cache is invalidated if listener files change. Set to false in production.
      * @param ContainerInterface|null $container Optional. PSR-11 container for dependency injection. If null, classes are instantiated directly.
+     * @param EventEmitterInterface|null $emitter Optional. Custom event emitter instance. If null, uses the default EventEmitter instance.
      */
     public static function discover(
         string|array $directory,
         ?bool $failFast = null,
         ?string $cachePath = null,
         bool $refreshCache = false,
-        ?ContainerInterface $container = null
+        ?ContainerInterface $container = null,
+        ?EventEmitterInterface $emitter = null
     ): void {
+        if ($emitter !== null) {
+            Event::setInstance($emitter);
+        }
+
         if ($failFast !== null) {
             Event::setThrowOnListenerError($failFast);
         }
 
         self::$container = $container;
 
-        $directories = is_array($directory) ? $directory : [$directory];
+        $directories = \is_array($directory) ? $directory : [$directory];
 
         foreach ($directories as $dir) {
             self::discoverSingle($dir, $cachePath, $refreshCache);
@@ -134,13 +140,12 @@ class ListenerDiscovery
         /** @var mixed $cacheData */
         $cacheData = require $cacheFile;
 
-        if (! is_array($cacheData)) {
+        if (! \is_array($cacheData)) {
             return false;
         }
 
         /** @var array<string, mixed> $cacheData */
-
-        if (! isset($cacheData['listeners']) || ! is_array($cacheData['listeners'])) {
+        if (! isset($cacheData['listeners']) || ! \is_array($cacheData['listeners'])) {
             return false;
         }
 
@@ -326,13 +331,13 @@ class ListenerDiscovery
         if ($isAlreadyLoaded || count($newFunctions) === 0) {
             $fileFunctions = self::findFunctionsInFile($filePath);
 
-            if (count($fileFunctions) > 0) {
+            if (\count($fileFunctions) > 0) {
                 $newFunctions = $fileFunctions;
             }
         }
 
         foreach ($newFunctions as $functionName) {
-            if (is_string($functionName)) {
+            if (\is_string($functionName)) {
                 self::registerFunction($functionName, $discoveredListeners, $filePath);
             }
         }
@@ -592,7 +597,7 @@ class ListenerDiscovery
             }
 
             // Resolve class instances using container if available
-            if (\is_array($callable) && is_string($callable[0] ?? null) && class_exists($callable[0])) {
+            if (\is_array($callable) && \is_string($callable[0] ?? null) && class_exists($callable[0])) {
                 $instance = self::resolveInstance($callable[0]);
                 $callable = [$instance, $callable[1]];
             }
