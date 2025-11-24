@@ -1,6 +1,11 @@
 # Event Library Documentation
 
-A lightweight, high-performance event-driven library for PHP that delivers true event emission through a simple, flexible, and powerful architecture.
+[![Tests](https://github.com/rcalicdan/event/actions/workflows/tests.yml/badge.svg)](https://github.com/rcalicdan/event/actions/workflows/tests.yml)
+[![Latest Stable Version](https://poser.pugx.org/rcalicdan/event/v/stable)](https://packagist.org/packages/rcalicdan/event)
+[![License](https://poser.pugx.org/rcalicdan/event/license)](https://packagist.org/packages/rcalicdan/event)
+[![PHP Version Require](https://poser.pugx.org/rcalicdan/event/require/php)](https://packagist.org/packages/rcalicdan/event)
+
+A lightweight, high-performance event-driven message-bus for PHP that delivers true event emission through a simple, flexible, and powerful architecture.
 
 ## Table of Contents
 
