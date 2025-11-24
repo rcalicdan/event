@@ -1,6 +1,6 @@
 # Event Library Documentation
 
-[![CI](https://github.com/rcalicdan/event/actions/workflows/tests.yml/badge.svg)](https://github.com/rcalicdan/event/actions)
+[![Tests](https://github.com/rcalicdan/event/actions/workflows/test.yml/badge.svg)](https://github.com/rcalicdan/event/actions/workflows/test.yml)
 [![Latest Stable Version](https://poser.pugx.org/rcalicdan/event/v/stable)](https://packagist.org/packages/rcalicdan/event)
 [![License](https://poser.pugx.org/rcalicdan/event/license)](https://packagist.org/packages/rcalicdan/event)
 [![PHP Version Require](https://poser.pugx.org/rcalicdan/event/require/php)](https://packagist.org/packages/rcalicdan/event)
