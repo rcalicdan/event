@@ -6,8 +6,6 @@ namespace Rcalicdan\Event;
 
 use function Rcalicdan\ConfigLoader\env;
 
-use Rcalicdan\ConfigLoader\Exceptions\EnvFileNotFoundException;
-
 trait EventEmitterTrait
 {
     /** @var array<string, array<int, array{callback: callable, priority: int}>> */
@@ -275,7 +273,7 @@ trait EventEmitterTrait
         $this->sortListeners($eventName);
 
         return array_values(array_map(
-            fn ($listener) => $listener['callback'],
+            fn($listener) => $listener['callback'],
             $this->listeners[$eventName]
         ));
     }
@@ -356,7 +354,7 @@ trait EventEmitterTrait
         }
 
         $matchingListeners = array_merge($exactListeners, $wildcardListeners);
-        usort($matchingListeners, fn ($a, $b) => $b['priority'] <=> $a['priority']);
+        usort($matchingListeners, fn($a, $b) => $b['priority'] <=> $a['priority']);
 
         return $matchingListeners;
     }
@@ -388,15 +386,11 @@ trait EventEmitterTrait
      */
     private function shouldThrowOnListenerError(): bool
     {
-        try {
-            if ($this->throwOnListenerError !== null) {
-                return $this->throwOnListenerError;
-            }
-
-            return (bool) env('EVENT_THROW_ON_ERROR', false);
-        } catch (EnvFileNotFoundException) {
-            return false;
+        if ($this->throwOnListenerError !== null) {
+            return $this->throwOnListenerError;
         }
+
+        return (bool) env('EVENT_THROW_ON_ERROR', false);
     }
 
     /**
