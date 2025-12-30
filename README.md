@@ -195,7 +195,7 @@ Install via Composer:
 composer require rcalicdan/event
 ```
 
-**Requirements**: PHP 8.2 or higher
+**Requirements**: PHP 8.3 or higher
 
 ### Usage Patterns
 

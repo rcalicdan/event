@@ -17,12 +17,12 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "require": {
-        "php": "^8.2",
+        "php": "^8.3",
         "rcalicdan/config-loader": "^1.0"
     },
     "require-dev": {
         "laravel/pint": "^1.10",
-        "pestphp/pest": "^3.0",
+        "pestphp/pest": "^4.0",
         "phpstan/phpstan": "^2.1",
         "phpstan/phpstan-strict-rules": "^2.0",
         "php-di/php-di": "^7.1"
