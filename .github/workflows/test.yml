@@ -35,20 +35,12 @@ jobs:
       - name: Install Dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
+      - name: Run Tests
+        run: ./vendor/bin/pest --coverage --min=80
+        
       - name: Run PHPStan
         run: ./vendor/bin/phpstan analyse --memory-limit=1G
 
-      - name: Run Tests
-        run: ./vendor/bin/pest --coverage --min=80
+      - name: Run Lint
+        run: ./vendor/bin/pint 
 
-      - name: Run Tests with Coverage
-        if: matrix.php == '8.2'
-        run: ./vendor/bin/pest --coverage --coverage-clover=coverage.xml
-
-      - name: Upload coverage to Codecov
-        if: matrix.php == '8.2'
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage.xml
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
